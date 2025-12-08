@@ -68,7 +68,6 @@ export default function QuestionEditor({
   };
 
   const updateOption = (index: number, field: string, value: unknown) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newOptions = [...editedQuestion.options];
     newOptions[index] = { ...newOptions[index], [field]: value };
     setEditedQuestion({ ...editedQuestion, options: newOptions });
@@ -92,7 +91,6 @@ export default function QuestionEditor({
   };
 
   const updateBlank = (index: number, field: string, value: unknown) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newBlanks = [...editedQuestion.blanks];
     newBlanks[index] = { ...newBlanks[index], [field]: value };
     setEditedQuestion({ ...editedQuestion, blanks: newBlanks });

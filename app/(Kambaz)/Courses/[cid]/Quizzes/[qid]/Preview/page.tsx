@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, ListGroup, ListGroupItem } from "react-bootstrap";
 import * as client from "../../client";
@@ -14,18 +14,18 @@ export default function QuizPreview() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [answers, setAnswers] = useState<any>({});
 
-  const fetchQuiz = async () => {
+  const fetchQuiz = useCallback(async () => {
     try {
       const quizData = await client.findQuizById(qid as string);
       setQuiz(quizData);
     } catch (error) {
       console.error("Error fetching quiz:", error);
     }
-  };
+  }, [qid]);
 
   useEffect(() => {
     fetchQuiz();
-  }, [qid]);
+  }, [fetchQuiz]);
 
   if (!quiz) {
     return <div>Loading...</div>;
@@ -34,8 +34,8 @@ export default function QuizPreview() {
   const questions = quiz.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleAnswerChange = (questionId: string, answer: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setAnswers({ ...answers, [questionId]: answer });
   };
 
