@@ -239,7 +239,7 @@ export default function TakeQuiz() {
               {currentQuestion.options?.map((option: any, index: number) => {
                 const optionKey = `take-opt-${currentQuestion._id}-${index}-${String(option.text || "").substring(0, 10) || index}`;
                 return (
-                <div key={`take-opt-${currentQuestion._id}-${index}-${option.text?.substring(0, 10) || index}`} className="mb-2">
+                  <div key={optionKey} className="mb-2">
                   <Form.Check
                     type="checkbox"
                     id={`take-option-${currentQuestion._id}-${index}`}
@@ -297,8 +297,10 @@ export default function TakeQuiz() {
           {currentQuestion.questionType === "Fill in the Blank" && (
             <div>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {currentQuestion.blanks?.map((blank: any, blankIndex: number) => (
-                <div key={`take-blank-${currentQuestion._id}-${blankIndex}-${blank.text?.substring(0, 10) || blankIndex}`} className="mb-2">
+              {currentQuestion.blanks?.map((blank: any, blankIndex: number) => {
+                const blankKey = `take-blank-${currentQuestion._id}-${blankIndex}-${String(blank.text || "").substring(0, 10) || blankIndex}`;
+                return (
+                  <div key={blankKey} className="mb-2">
                   <Form.Label htmlFor={`take-blank-${currentQuestion._id}-${blankIndex}`}>
                     {blank.text}
                   </Form.Label>
@@ -314,8 +316,9 @@ export default function TakeQuiz() {
                     }}
                     placeholder="Enter your answer"
                   />
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
