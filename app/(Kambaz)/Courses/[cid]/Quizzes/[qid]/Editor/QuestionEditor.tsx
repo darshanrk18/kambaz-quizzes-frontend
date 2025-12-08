@@ -85,7 +85,9 @@ export default function QuestionEditor({
   };
 
   const removeBlank = (index: number) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newBlanks = editedQuestion.blanks.filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (_: any, i: number) => i !== index
     );
     setEditedQuestion({ ...editedQuestion, blanks: newBlanks });
@@ -168,7 +170,7 @@ export default function QuestionEditor({
           onChange={(e) =>
             setEditedQuestion({
               ...editedQuestion,
-              points: parseInt(e.target.value) || 1,
+              points: Number.parseInt(e.target.value, 10) || 1,
             })
           }
         />
@@ -253,7 +255,7 @@ export default function QuestionEditor({
           </div>
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {editedQuestion.blanks?.map((blank: any, blankIndex: number) => (
-            <div key={blankIndex} className="mb-3 border p-3 rounded">
+            <div key={`blank-${blankIndex}-${blank.text || ""}`} className="mb-3 border p-3 rounded">
               <Form.Group className="mb-2">
                 <Form.Label>Blank Text</Form.Label>
                 <Form.Control

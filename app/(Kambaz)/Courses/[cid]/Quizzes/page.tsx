@@ -78,21 +78,14 @@ export default function Quizzes() {
                 {quiz.published && (
                   <FaCheckCircle className="text-success me-2" />
                 )}
-                <div
-                  className="flex-grow-1"
-                  style={{ cursor: "pointer" }}
+                <button
+                  type="button"
+                  className="flex-grow-1 btn btn-link text-start p-0 text-decoration-none"
+                  style={{ cursor: "pointer", border: "none", background: "none" }}
                   onClick={() => router.push(`/Courses/${cid}/Quizzes/${quiz._id}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      router.push(`/Courses/${cid}/Quizzes/${quiz._id}`);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
                 >
                   <strong>{quiz.title}</strong>
-                </div>
+                </button>
               </div>
               <Dropdown>
                 <Dropdown.Toggle
