@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, ListGroup, ListGroupItem, Dropdown } from "react-bootstrap";
-import { FaPlus, FaEllipsisV, FaCheckCircle } from "react-icons/fa";
+import { FaEllipsisV, FaCheckCircle } from "react-icons/fa";
 import * as client from "./client";
+import QuizzesControls from "./QuizzesControls";
 
 export default function Quizzes() {
   const { cid } = useParams();
@@ -32,24 +33,7 @@ export default function Quizzes() {
     fetchQuizzes();
   }, [cid]);
 
-  const handleAddQuiz = async () => {
-    try {
-      const newQuiz = await client.createQuiz(cid as string, {
-        title: "New Quiz",
-        description: "",
-        points: 0,
-        shuffleAnswers: false,
-        timeLimit: false,
-        timeLimitMinutes: 0,
-        dueDate: "",
-        availableDate: "",
-        untilDate: "",
-      });
-      router.push(`/Courses/${cid}/Quizzes/${newQuiz._id}/Editor`);
-    } catch (error) {
-      console.error("Error creating quiz:", error);
-    }
-  };
+  // Note: Quiz creation is handled in QuizzesControls component
 
   const handleDeleteQuiz = async (quizId: string) => {
     if (window.confirm("Are you sure you want to delete this quiz?")) {
@@ -73,20 +57,16 @@ export default function Quizzes() {
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h3>Quizzes</h3>
-        <Button variant="danger" onClick={handleAddQuiz}>
-          <FaPlus className="me-2" />
-          Quiz
-        </Button>
-      </div>
-
+      <QuizzesControls />
+      <br />
+      <br />
+      <br />
       {quizzes.length === 0 ? (
         <div className="text-center p-5">
           <p>No quizzes yet. Click the &quot;+ Quiz&quot; button to add a new quiz.</p>
         </div>
       ) : (
-        <ListGroup>
+        <ListGroup className="rounded-0">
           {quizzes.map((quiz: any) => (
             <ListGroupItem
               key={quiz._id}
