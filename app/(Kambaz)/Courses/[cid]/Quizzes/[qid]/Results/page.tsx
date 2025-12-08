@@ -44,19 +44,19 @@ export default function QuizResults() {
   const questions = quiz.questions || [];
   const answers = attempt.answers || [];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isCorrect = (question: any, answer: any) => {
     if (!answer) return false;
 
     if (question.questionType === "Multiple Choice") {
-      const correctOptions = question.options
-        ?.map((opt: any, idx: number) => (opt.isCorrect ? idx : -1))
-        .filter((idx: number) => idx !== -1) || [];
-      const selectedOptions = answer.selectedOptions || [];
-      return (
-        correctOptions.length === selectedOptions.length &&
-        correctOptions.every((idx: number) => selectedOptions.includes(idx)) &&
-        selectedOptions.every((idx: number) => correctOptions.includes(idx))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const correctOptionIndex = (question.options || []).findIndex(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (opt: any) => opt.isCorrect
       );
+      const selectedOptions = answer.selectedOptions || [];
+      // For Multiple Choice, we expect a single selected option
+      return selectedOptions.length === 1 && selectedOptions[0] === correctOptionIndex;
     } else if (question.questionType === "True/False") {
       return answer.trueFalseAnswer === question.correctAnswer;
     } else if (question.questionType === "Fill in the Blank") {
@@ -152,8 +152,9 @@ export default function QuizResults() {
                 )}
                 {question.questionType === "Fill in the Blank" && (
                   <div>
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {question.blanks?.map((blank: any, blankIndex: number) => (
-                      <div key={blankIndex}>
+                      <div key={`blank-${blankIndex}-${blank.text?.substring(0, 10) || blankIndex}`}>
                         {blank.text}: {answer?.fillInAnswers?.[blankIndex] || "(no answer)"}
                       </div>
                     ))}
@@ -161,15 +162,13 @@ export default function QuizResults() {
                 )}
               </div>
 
-              {!correct && (
+              {correct === false && (
                 <div className="mt-2 text-danger">
                   <strong>Correct Answer:</strong>
                   {question.questionType === "Multiple Choice" && (
                     <div>
-                      {question.options
-                        ?.filter((opt: any) => opt.isCorrect)
-                        .map((opt: any) => opt.text)
-                        .join(", ")}
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {question.options?.find((opt: any) => opt.isCorrect)?.text || "(no correct answer set)"}
                     </div>
                   )}
                   {question.questionType === "True/False" && (
