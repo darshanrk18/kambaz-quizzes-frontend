@@ -59,19 +59,23 @@ export default function TakeQuiz() {
   const questions = quiz.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleAnswerChange = (questionId: string, answer: unknown) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setAnswers({ ...answers, [questionId]: answer });
     // Auto-save answers to attempt
     if (attempt) {
+      const isNumberArray = (arr: unknown): arr is number[] => {
+        return Array.isArray(arr) && arr.every((a) => typeof a === "number");
+      };
+      const isStringArray = (arr: unknown): arr is string[] => {
+        return Array.isArray(arr) && arr.length > 0 && arr.every((a) => typeof a === "string");
+      };
+      
       const answerData = {
         questionId,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        selectedOptions: Array.isArray(answer) && answer.every((a: any) => typeof a === "number") ? answer : undefined,
+        selectedOptions: isNumberArray(answer) ? answer : undefined,
         trueFalseAnswer: typeof answer === "boolean" ? answer : undefined,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        fillInAnswers: Array.isArray(answer) && answer.length > 0 && answer.every((a: any) => typeof a === "string") ? answer : undefined,
+        fillInAnswers: isStringArray(answer) ? answer : undefined,
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       attemptClient.updateAttempt(attempt._id, {
@@ -144,6 +148,7 @@ export default function TakeQuiz() {
       try {
         const { score, totalPoints } = calculateScore();
         // Convert answers to the format expected by the backend
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const formattedAnswers = questions.map((question: any) => {
           const answer = answers[question._id];
           if (!answer) {
@@ -231,7 +236,9 @@ export default function TakeQuiz() {
           {currentQuestion.questionType === "Multiple Choice" && (
             <div>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {currentQuestion.options?.map((option: any, index: number) => (
+              {currentQuestion.options?.map((option: any, index: number) => {
+                const optionKey = `take-opt-${currentQuestion._id}-${index}-${String(option.text || "").substring(0, 10) || index}`;
+                return (
                 <div key={`take-opt-${currentQuestion._id}-${index}-${option.text?.substring(0, 10) || index}`} className="mb-2">
                   <Form.Check
                     type="checkbox"
@@ -334,6 +341,7 @@ export default function TakeQuiz() {
       <div className="mt-4">
         <strong>Question Navigation:</strong>
         <ListGroup horizontal className="mt-2">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {questions.map((q: any, index: number) => (
             <ListGroupItem
               key={q._id}

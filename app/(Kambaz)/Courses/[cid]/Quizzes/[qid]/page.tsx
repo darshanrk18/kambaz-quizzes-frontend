@@ -77,9 +77,9 @@ export default function QuizDetails() {
           <strong>Assignment Group:</strong> {quiz.assignmentGroup || "Quizzes"}
         </div>
         <div className="mb-3">
-          <strong>Shuffle Answers:</strong> {quiz.shuffleAnswers !== false ? "Yes" : "No"}
+          <strong>Shuffle Answers:</strong> {quiz.shuffleAnswers === false ? "No" : "Yes"}
         </div>
-        {quiz.timeLimit !== false && (
+        {quiz.timeLimit === false ? null : (
           <div className="mb-3">
             <strong>Time Limit:</strong> {quiz.timeLimitMinutes || 20} minutes
           </div>
@@ -181,7 +181,7 @@ export default function QuizDetails() {
       <div className="mb-3">
         <strong>Points:</strong> {quiz.points || 0}
       </div>
-      {quiz.timeLimit !== false && (
+      {quiz.timeLimit === false ? null : (
         <div className="mb-3">
           <strong>Time Limit:</strong> {quiz.timeLimitMinutes || 20} minutes
         </div>
@@ -210,7 +210,10 @@ export default function QuizDetails() {
             onClick={() => router.push(`/Courses/${cid}/Quizzes/${qid}/Take`)}
             className="me-2"
           >
-            {hasAttempt ? (canRetake ? "Retake Quiz" : "View Results") : "Start Quiz"}
+            {(() => {
+              if (!hasAttempt) return "Start Quiz";
+              return canRetake ? "Retake Quiz" : "View Results";
+            })()}
           </Button>
         )}
         {hasAttempt && (

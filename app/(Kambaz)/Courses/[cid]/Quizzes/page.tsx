@@ -60,6 +60,7 @@ export default function Quizzes() {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getAvailabilityStatus = (quiz: any) => {
     if (!quiz.availableDate) return "Available";
     const now = new Date();
