@@ -262,8 +262,9 @@ export default function TakeQuiz() {
                     }}
                     label={option.text}
                   />
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           )}
 
