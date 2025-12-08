@@ -33,10 +33,12 @@ export default function TakeQuiz() {
     try {
       const newAttempt = await attemptClient.createAttempt(qid as string);
       setAttempt(newAttempt);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error starting attempt:", error);
-      if (error.response?.status === 403) {
-        alert(error.response.data?.message || "Cannot start quiz. Maximum attempts reached or quiz not available.");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((error as any)?.response?.status === 403) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        alert((error as any).response.data?.message || "Cannot start quiz. Maximum attempts reached or quiz not available.");
         router.push(`/Courses/${cid}/Quizzes/${qid}`);
       }
     }
