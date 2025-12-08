@@ -105,16 +105,14 @@ export default function TakeQuiz() {
   // Extract scoring functions to reduce nesting
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const scoreMultipleChoice = (question: any, answer: unknown, points: number): number => {
-    const correctOptions = (question.options || [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const correctOptionIndex = (question.options || []).findIndex(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((opt: any, idx: number) => (opt.isCorrect ? idx : -1))
-      .filter((idx: number) => idx !== -1);
-    const selectedOptions = Array.isArray(answer) ? answer : [];
-    const isCorrect =
-      correctOptions.length === selectedOptions.length &&
-      correctOptions.every((idx: number) => selectedOptions.includes(idx)) &&
-      selectedOptions.every((idx: number) => correctOptions.includes(idx));
-    return isCorrect ? points : 0;
+      (opt: any) => opt.isCorrect
+    );
+    // For Multiple Choice, answer is a single index (number), not an array
+    const selectedIndex = typeof answer === "number" ? answer : -1;
+    return correctOptionIndex === selectedIndex ? points : 0;
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
