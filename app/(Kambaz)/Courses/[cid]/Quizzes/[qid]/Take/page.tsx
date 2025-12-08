@@ -102,47 +102,60 @@ export default function TakeQuiz() {
     setCurrentQuestionIndex(index);
   };
 
+  // Extract scoring functions to reduce nesting
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scoreMultipleChoice = (question: any, answer: unknown, points: number): number => {
+    const correctOptions = (question.options || [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((opt: any, idx: number) => (opt.isCorrect ? idx : -1))
+      .filter((idx: number) => idx !== -1);
+    const selectedOptions = Array.isArray(answer) ? answer : [];
+    const isCorrect =
+      correctOptions.length === selectedOptions.length &&
+      correctOptions.every((idx: number) => selectedOptions.includes(idx)) &&
+      selectedOptions.every((idx: number) => correctOptions.includes(idx));
+    return isCorrect ? points : 0;
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scoreTrueFalse = (question: any, answer: unknown, points: number): number => {
+    return answer === question.correctAnswer ? points : 0;
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scoreFillInBlank = (question: any, answer: unknown, points: number): number => {
+    let blankScore = 0;
+    const pointsPerBlank = points / (question.blanks?.length || 1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (question.blanks || []).forEach((blank: any, blankIndex: number) => {
+      const userAnswer = (Array.isArray(answer) ? answer[blankIndex] : "")?.toLowerCase().trim() || "";
+      const correctAnswers = (blank.correctAnswers || []).map((a: string) =>
+        a.toLowerCase().trim()
+      );
+      if (correctAnswers.includes(userAnswer)) {
+        blankScore += pointsPerBlank;
+      }
+    });
+    return blankScore;
+  };
+
   const calculateScore = () => {
     let totalScore = 0;
     let totalPoints = 0;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     questions.forEach((question: any) => {
-      totalPoints += question.points || 0;
+      const points = question.points || 0;
+      totalPoints += points;
       const answer = answers[question._id];
       if (!answer) return;
 
       if (question.questionType === "Multiple Choice") {
-        const correctOptions = (question.options || [])
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((opt: any, idx: number) => (opt.isCorrect ? idx : -1))
-          .filter((idx: number) => idx !== -1);
-        const selectedOptions = Array.isArray(answer) ? answer : [];
-        const isCorrect =
-          correctOptions.length === selectedOptions.length &&
-          correctOptions.every((idx: number) => selectedOptions.includes(idx)) &&
-          selectedOptions.every((idx: number) => correctOptions.includes(idx));
-        if (isCorrect) {
-          totalScore += question.points || 0;
-        }
+        totalScore += scoreMultipleChoice(question, answer, points);
       } else if (question.questionType === "True/False") {
-        if (answer === question.correctAnswer) {
-          totalScore += question.points || 0;
-        }
+        totalScore += scoreTrueFalse(question, answer, points);
       } else if (question.questionType === "Fill in the Blank") {
-        let blankScore = 0;
-        const pointsPerBlank = (question.points || 0) / (question.blanks?.length || 1);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (question.blanks || []).forEach((blank: any, blankIndex: number) => {
-          const userAnswer = (Array.isArray(answer) ? answer[blankIndex] : "")?.toLowerCase().trim() || "";
-          const correctAnswers = (blank.correctAnswers || []).map((a: string) =>
-            a.toLowerCase().trim()
-          );
-          if (correctAnswers.includes(userAnswer)) {
-            blankScore += pointsPerBlank;
-          }
-        });
-        totalScore += blankScore;
+        totalScore += scoreFillInBlank(question, answer, points);
       }
     });
 
