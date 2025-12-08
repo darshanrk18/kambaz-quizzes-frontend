@@ -77,7 +77,7 @@ export default function QuizQuestionsEditor({
         <div>
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {quiz.questions.map((question: any, index: number) => (
-            <div key={question._id} className="mb-4 border p-3 rounded">
+            <div key={question._id} className="mb-3 border p-3 rounded">
               {editingQuestionId === question._id ? (
                 <QuestionEditor
                   question={question}
@@ -106,15 +106,16 @@ export default function QuizQuestionsEditor({
                         Edit
                       </Button>
                       <Button
-                        variant="danger"
+                        variant="link"
                         size="sm"
                         onClick={() => handleDeleteQuestion(question._id)}
+                        className="text-danger"
                       >
                         <FaTrash />
                       </Button>
                     </div>
                   </div>
-                  <div>
+                  <div className="mb-2">
                     <strong>Title:</strong> {question.title || "Untitled"}
                   </div>
                   <div>
