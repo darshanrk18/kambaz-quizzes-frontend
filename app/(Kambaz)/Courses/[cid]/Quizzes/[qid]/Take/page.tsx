@@ -182,7 +182,7 @@ export default function TakeQuiz() {
           if (question.questionType === "Multiple Choice") {
             return {
               questionId: question._id,
-              selectedOptions: Array.isArray(answer) ? answer : [],
+              selectedOptions: typeof answer === "number" ? [answer] : [],
               trueFalseAnswer: undefined,
               fillInAnswers: undefined,
             };
@@ -259,28 +259,16 @@ export default function TakeQuiz() {
                 const optionKey = `take-opt-${currentQuestion._id}-${index}-${String(option.text || "").substring(0, 10) || index}`;
                 return (
                   <div key={optionKey} className="mb-2">
-                  <Form.Check
-                    type="checkbox"
-                    id={`take-option-${currentQuestion._id}-${index}`}
-                    checked={
-                      (answers[currentQuestion._id] || []).includes(index)
-                    }
-                    onChange={(e) => {
-                      const currentAnswers = answers[currentQuestion._id] || [];
-                      if (e.target.checked) {
-                        handleAnswerChange(currentQuestion._id, [
-                          ...currentAnswers,
-                          index,
-                        ]);
-                      } else {
-                        handleAnswerChange(
-                          currentQuestion._id,
-                          currentAnswers.filter((i: number) => i !== index)
-                        );
-                      }
-                    }}
-                    label={option.text}
-                  />
+                    <Form.Check
+                      type="radio"
+                      id={`take-option-${currentQuestion._id}-${index}`}
+                      name={`take-mc-${currentQuestion._id}`}
+                      checked={answers[currentQuestion._id] === index}
+                      onChange={() => {
+                        handleAnswerChange(currentQuestion._id, index);
+                      }}
+                      label={option.text}
+                    />
                   </div>
                 );
               })}

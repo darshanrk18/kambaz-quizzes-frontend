@@ -132,9 +132,10 @@ export default function QuizResults() {
                 {question.questionType === "Multiple Choice" && (
                   <div>
                     {(answer?.selectedOptions || []).length > 0 ? (
-                      (answer.selectedOptions || []).map((idx: number) => (
-                        <div key={idx}>{question.options?.[idx]?.text || "(invalid option)"}</div>
-                      ))
+                      <div>
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {question.options?.[answer.selectedOptions[0]]?.text || "(invalid option)"}
+                      </div>
                     ) : (
                       <div className="text-muted">(no answer selected)</div>
                     )}
