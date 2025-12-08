@@ -33,7 +33,7 @@ export default function QuizDetails() {
       try {
         const attempt = await attemptClient.findLatestAttempt(currentUser._id, qid as string);
         setLatestAttempt(attempt);
-      } catch (error) {
+      } catch {
         // No attempt yet, that's okay
         setLatestAttempt(null);
       }
@@ -98,7 +98,7 @@ export default function QuizDetails() {
           </div>
         )}
         <div className="mb-3">
-          <strong>One Question at a Time:</strong> {quiz.oneQuestionAtATime !== false ? "Yes" : "No"}
+          <strong>One Question at a Time:</strong> {quiz.oneQuestionAtATime === false ? "No" : "Yes"}
         </div>
         <div className="mb-3">
           <strong>Webcam Required:</strong> {quiz.webcamRequired ? "Yes" : "No"}

@@ -100,7 +100,6 @@ export default function Quizzes() {
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {quizzes.map((quiz: any) => {
             const availabilityStatus = getAvailabilityStatus(quiz);
-            const canTakeQuiz = isFaculty || (quiz.published && availabilityStatus === "Available");
             
             return (
               <ListGroupItem

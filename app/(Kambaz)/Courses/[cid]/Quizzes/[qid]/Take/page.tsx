@@ -60,18 +60,22 @@ export default function TakeQuiz() {
   const currentQuestion = questions[currentQuestionIndex];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleAnswerChange = (questionId: string, answer: any) => {
+  const handleAnswerChange = (questionId: string, answer: unknown) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setAnswers({ ...answers, [questionId]: answer });
     // Auto-save answers to attempt
     if (attempt) {
       const answerData = {
         questionId,
-        selectedOptions: answer instanceof Array ? answer : undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        selectedOptions: Array.isArray(answer) && answer.every((a: any) => typeof a === "number") ? answer : undefined,
         trueFalseAnswer: typeof answer === "boolean" ? answer : undefined,
-        fillInAnswers: answer instanceof Array && answer.length > 0 && typeof answer[0] === "string" ? answer : undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        fillInAnswers: Array.isArray(answer) && answer.length > 0 && answer.every((a: any) => typeof a === "string") ? answer : undefined,
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       attemptClient.updateAttempt(attempt._id, {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         answers: [...(attempt.answers || []).filter((a: any) => a.questionId !== questionId), answerData],
       }).catch((err) => console.error("Error auto-saving:", err));
     }
