@@ -63,7 +63,7 @@ export default function TakeQuiz() {
 
   const handleAnswerChange = (questionId: string, answer: unknown) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setAnswers({ ...answers, [questionId]: answer });
+    setAnswers({ ...answers as any, [questionId]: answer });
     // Auto-save answers to attempt
     if (attempt) {
       const isNumberArray = (arr: unknown): arr is number[] => {
@@ -79,7 +79,6 @@ export default function TakeQuiz() {
         trueFalseAnswer: typeof answer === "boolean" ? answer : undefined,
         fillInAnswers: isStringArray(answer) ? answer : undefined,
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       attemptClient.updateAttempt(attempt._id, {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         answers: [...(attempt.answers || []).filter((a: any) => a.questionId !== questionId), answerData],
