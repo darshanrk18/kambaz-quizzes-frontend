@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button, ListGroup, ListGroupItem, Dropdown } from "react-bootstrap";
+import { ListGroup, ListGroupItem, Dropdown } from "react-bootstrap";
 import { FaEllipsisV, FaCheckCircle } from "react-icons/fa";
 import * as client from "./client";
 import QuizzesControls from "./QuizzesControls";
@@ -13,10 +13,11 @@ export default function Quizzes() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [quizzes, setQuizzes] = useState<any[]>([]);
 
-  const fetchQuizzes = async () => {
+  const fetchQuizzes = useCallback(async () => {
     try {
       const quizzesData = await client.findQuizzesForCourse(cid as string);
       // Sort by availableDate
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sorted = quizzesData.sort((a: any, b: any) => {
         const dateA = a.availableDate || "";
         const dateB = b.availableDate || "";
@@ -27,16 +28,16 @@ export default function Quizzes() {
       console.error("Error fetching quizzes:", error);
       setQuizzes([]);
     }
-  };
+  }, [cid]);
 
   useEffect(() => {
     fetchQuizzes();
-  }, [cid]);
+  }, [fetchQuizzes]);
 
   // Note: Quiz creation is handled in QuizzesControls component
 
   const handleDeleteQuiz = async (quizId: string) => {
-    if (window.confirm("Are you sure you want to delete this quiz?")) {
+    if (globalThis.confirm("Are you sure you want to delete this quiz?")) {
       try {
         await client.deleteQuiz(quizId);
         fetchQuizzes();
@@ -67,6 +68,7 @@ export default function Quizzes() {
         </div>
       ) : (
         <ListGroup className="rounded-0">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {quizzes.map((quiz: any) => (
             <ListGroupItem
               key={quiz._id}
@@ -80,6 +82,14 @@ export default function Quizzes() {
                   className="flex-grow-1"
                   style={{ cursor: "pointer" }}
                   onClick={() => router.push(`/Courses/${cid}/Quizzes/${quiz._id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/Courses/${cid}/Quizzes/${quiz._id}`);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                 >
                   <strong>{quiz.title}</strong>
                 </div>

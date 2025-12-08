@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Form } from "react-bootstrap";
+import { Button } from "react-bootstrap";
 import { FaPlus, FaTrash } from "react-icons/fa";
 import * as client from "../../client";
 import QuestionEditor from "./QuestionEditor";
@@ -9,13 +9,11 @@ import QuestionEditor from "./QuestionEditor";
 export default function QuizQuestionsEditor({
   quiz,
   setQuiz,
-  fetchQuiz,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   quiz: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setQuiz: (quiz: any) => void;
-  fetchQuiz: () => void;
 }) {
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
 
@@ -42,7 +40,7 @@ export default function QuizQuestionsEditor({
   };
 
   const handleDeleteQuestion = async (questionId: string) => {
-    if (window.confirm("Are you sure you want to delete this question?")) {
+    if (globalThis.confirm("Are you sure you want to delete this question?")) {
       try {
         const updated = await client.deleteQuestion(quiz._id, questionId);
         setQuiz(updated);
@@ -56,6 +54,7 @@ export default function QuizQuestionsEditor({
   };
 
   const handleSaveQuestion = async (questionId: string, questionData: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     try {
       const updated = await client.updateQuestion(quiz._id, questionId, questionData);
       setQuiz(updated);
@@ -76,6 +75,7 @@ export default function QuizQuestionsEditor({
 
       {quiz.questions && quiz.questions.length > 0 ? (
         <div>
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {quiz.questions.map((question: any, index: number) => (
             <div key={question._id} className="mb-4 border p-3 rounded">
               {editingQuestionId === question._id ? (

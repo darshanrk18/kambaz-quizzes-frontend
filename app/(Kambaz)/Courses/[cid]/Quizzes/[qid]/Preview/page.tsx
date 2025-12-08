@@ -35,6 +35,7 @@ export default function QuizPreview() {
   const currentQuestion = questions[currentQuestionIndex];
 
   const handleAnswerChange = (questionId: string, answer: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setAnswers({ ...answers, [questionId]: answer });
   };
 
@@ -101,6 +102,7 @@ export default function QuizPreview() {
           {/* Multiple Choice */}
           {currentQuestion.questionType === "Multiple Choice" && (
             <div>
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {currentQuestion.options?.map((option: any, index: number) => (
                 <div key={index} className="mb-2">
                   <input
@@ -160,6 +162,7 @@ export default function QuizPreview() {
           {/* Fill in the Blank */}
           {currentQuestion.questionType === "Fill in the Blank" && (
             <div>
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {currentQuestion.blanks?.map((blank: any, blankIndex: number) => (
                 <div key={blankIndex} className="mb-2">
                   <label>{blank.text}</label>
@@ -202,6 +205,7 @@ export default function QuizPreview() {
       <div className="mt-4">
         <strong>Question Navigation:</strong>
         <ListGroup horizontal className="mt-2">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {questions.map((q: any, index: number) => (
             <ListGroupItem
               key={q._id}

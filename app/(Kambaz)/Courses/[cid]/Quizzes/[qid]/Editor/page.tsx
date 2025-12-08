@@ -68,7 +68,6 @@ export default function QuizEditor() {
           <QuizQuestionsEditor
             quiz={quiz}
             setQuiz={setQuiz}
-            fetchQuiz={fetchQuiz}
           />
         </Tab>
       </Tabs>
