@@ -38,7 +38,7 @@ export default function QuizDetailsEditor({
           type="number"
           value={quiz.points || 0}
           onChange={(e) =>
-            setQuiz({ ...quiz, points: parseInt(e.target.value) || 0 })
+            setQuiz({ ...quiz, points: Number.parseInt(e.target.value, 10) || 0 })
           }
         />
       </Form.Group>
@@ -69,7 +69,7 @@ export default function QuizDetailsEditor({
             onChange={(e) =>
               setQuiz({
                 ...quiz,
-                timeLimitMinutes: parseInt(e.target.value) || 0,
+                timeLimitMinutes: Number.parseInt(e.target.value, 10) || 0,
               })
             }
             className="mt-2"

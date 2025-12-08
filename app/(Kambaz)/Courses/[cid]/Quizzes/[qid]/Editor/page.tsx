@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Tab, Tabs } from "react-bootstrap";
 import * as client from "../../client";
@@ -14,18 +14,18 @@ export default function QuizEditor() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [quiz, setQuiz] = useState<any>(null);
 
-  const fetchQuiz = async () => {
+  const fetchQuiz = useCallback(async () => {
     try {
       const quizData = await client.findQuizById(qid as string);
       setQuiz(quizData);
     } catch (error) {
       console.error("Error fetching quiz:", error);
     }
-  };
+  }, [qid]);
 
   useEffect(() => {
     fetchQuiz();
-  }, [qid]);
+  }, [fetchQuiz]);
 
   const handleSave = async () => {
     try {
