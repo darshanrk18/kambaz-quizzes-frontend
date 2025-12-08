@@ -53,8 +53,8 @@ export default function QuizQuestionsEditor({
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSaveQuestion = async (questionId: string, questionData: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     try {
       const updated = await client.updateQuestion(quiz._id, questionId, questionData);
       setQuiz(updated);

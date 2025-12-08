@@ -62,12 +62,12 @@ export default function QuestionEditor({
 
   const removeOption = (index: number) => {
     const newOptions = editedQuestion.options.filter(
-      (_: any, i: number) => i !== index
+      (_: unknown, i: number) => i !== index
     );
     setEditedQuestion({ ...editedQuestion, options: newOptions });
   };
 
-  const updateOption = (index: number, field: string, value: any) => {
+  const updateOption = (index: number, field: string, value: unknown) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newOptions = [...editedQuestion.options];
     newOptions[index] = { ...newOptions[index], [field]: value };

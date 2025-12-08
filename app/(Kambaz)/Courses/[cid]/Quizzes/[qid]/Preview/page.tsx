@@ -104,7 +104,7 @@ export default function QuizPreview() {
             <div>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {currentQuestion.options?.map((option: any, index: number) => (
-                <div key={index} className="mb-2">
+                <div key={`preview-opt-${currentQuestion._id}-${index}-${option.text?.substring(0, 10) || index}`} className="mb-2">
                   <input
                     type="checkbox"
                     checked={
