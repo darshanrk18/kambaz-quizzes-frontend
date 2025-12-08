@@ -1,10 +1,12 @@
+"use client";
+
 import Link from "next/link";
-import { Container, Card, ListGroup, ListGroupItem } from "react-bootstrap";
+import { Card, ListGroup, ListGroupItem } from "react-bootstrap";
 import { FaGithub, FaUser, FaCode } from "react-icons/fa";
 
 export default function ProjectPage() {
   return (
-    <Container className="mt-5 mb-5">
+    <div className="container mt-5 mb-5">
       <div className="text-center mb-5">
         <h1 className="display-4 text-danger mb-3">Kambaz Quizzes Project</h1>
         <p className="lead">Final Project - Web Development</p>
@@ -27,7 +29,12 @@ export default function ProjectPage() {
                     <div>
                       <strong>Darshan Ravindra Konnur</strong>
                       <br />
-                      <small className="text-muted">Section: [Your Section]</small>
+                      <small className="text-muted">Section: 05 (Online)</small>
+                    </div>
+                    <div>
+                      <strong>Vikas Neriyanuru</strong>
+                      <br />
+                      <small className="text-muted">Section: 05 (Online)</small>
                     </div>
                   </div>
                 </ListGroupItem>
@@ -96,28 +103,37 @@ export default function ProjectPage() {
             </Card.Header>
             <Card.Body>
               <p>
-                Kambaz Quizzes is a comprehensive Learning Management System that extends
-                the Kambaz platform with a full-featured quiz system. The project includes:
+                Kambaz Quizzes is a comprehensive Learning Management System
+                that extends the Kambaz platform with a full-featured quiz
+                system. The project includes:
               </p>
               <ul>
-                <li>User authentication and role-based access control (Faculty/Student)</li>
+                <li>
+                  User authentication and role-based access control
+                  (Faculty/Student)
+                </li>
                 <li>Course management and enrollment</li>
                 <li>Quiz creation and management for faculty</li>
-                <li>Multiple question types: Multiple Choice, True/False, Fill in the Blank</li>
+                <li>
+                  Multiple question types: Multiple Choice, True/False, Fill in
+                  the Blank
+                </li>
                 <li>Quiz taking interface for students</li>
                 <li>Automatic scoring and results display</li>
                 <li>Quiz attempt tracking and multiple attempts support</li>
               </ul>
               <div className="mt-4">
                 <Link href="/Account/Signin">
-                  <button className="btn btn-danger">Get Started - Sign In</button>
+                  <button className="btn btn-danger">
+                    Get Started - Sign In
+                  </button>
                 </Link>
               </div>
             </Card.Body>
           </Card>
         </div>
       </div>
-    </Container>
+    </div>
   );
 }
 
