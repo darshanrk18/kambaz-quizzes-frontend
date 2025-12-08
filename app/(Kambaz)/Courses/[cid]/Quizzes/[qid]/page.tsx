@@ -63,88 +63,97 @@ export default function QuizDetails() {
     return <div>Loading...</div>;
   }
 
-  // Extract faculty view to reduce complexity
+  // Extract faculty view to reduce complexity - Canvas style
   const renderFacultyView = () => (
     <div>
-      <h3>{quiz.title}</h3>
-      <div className="mb-3">
-        <strong>Quiz Type:</strong> {quiz.quizType || "Graded Quiz"}
-      </div>
-      <div className="mb-3">
-        <strong>Points:</strong> {quiz.points || 0} (sum of all question points)
-      </div>
-      <div className="mb-3">
-        <strong>Assignment Group:</strong> {quiz.assignmentGroup || "Quizzes"}
-      </div>
-      <div className="mb-3">
-        <strong>Shuffle Answers:</strong> {quiz.shuffleAnswers === false ? "No" : "Yes"}
-      </div>
-      {quiz.timeLimit === false ? null : (
-        <div className="mb-3">
-          <strong>Time Limit:</strong> {quiz.timeLimitMinutes || 20} minutes
+      <div className="d-flex justify-content-between align-items-start mb-3">
+        <h3>{quiz.title}</h3>
+        <div>
+          <Button
+            variant={quiz.published ? "warning" : "success"}
+            onClick={handlePublishToggle}
+            className="me-2"
+          >
+            {quiz.published ? "Unpublish" : "Publish"}
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => router.push(`/Courses/${cid}/Quizzes/${qid}/Preview`)}
+            className="me-2"
+          >
+            Preview
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => router.push(`/Courses/${cid}/Quizzes/${qid}/Editor`)}
+          >
+            Edit
+          </Button>
         </div>
-      )}
-      <div className="mb-3">
-        <strong>Multiple Attempts:</strong> {quiz.multipleAttempts ? `Yes (${quiz.attemptsAllowed || 1} attempts)` : "No"}
       </div>
-      {quiz.showCorrectAnswers && (
-        <div className="mb-3">
-          <strong>Show Correct Answers:</strong> {quiz.showCorrectAnswers}
+      <hr />
+      <div className="row">
+        <div className="col-md-6">
+          <div className="mb-3">
+            <strong>Quiz Type:</strong> {quiz.quizType || "Graded Quiz"}
+          </div>
+          <div className="mb-3">
+            <strong>Points:</strong> {quiz.points || 0} (sum of all question points)
+          </div>
+          <div className="mb-3">
+            <strong>Assignment Group:</strong> {quiz.assignmentGroup || "Quizzes"}
+          </div>
+          <div className="mb-3">
+            <strong>Shuffle Answers:</strong> {quiz.shuffleAnswers === false ? "No" : "Yes"}
+          </div>
+          {quiz.timeLimit === false ? null : (
+            <div className="mb-3">
+              <strong>Time Limit:</strong> {quiz.timeLimitMinutes || 20} minutes
+            </div>
+          )}
+          <div className="mb-3">
+            <strong>Multiple Attempts:</strong> {quiz.multipleAttempts ? `Yes (${quiz.attemptsAllowed || 1} attempts)` : "No"}
+          </div>
+          {quiz.showCorrectAnswers && (
+            <div className="mb-3">
+              <strong>Show Correct Answers:</strong> {quiz.showCorrectAnswers}
+            </div>
+          )}
+          {quiz.accessCode && (
+            <div className="mb-3">
+              <strong>Access Code:</strong> {quiz.accessCode}
+            </div>
+          )}
         </div>
-      )}
-      {quiz.accessCode && (
-        <div className="mb-3">
-          <strong>Access Code:</strong> {quiz.accessCode}
+        <div className="col-md-6">
+          <div className="mb-3">
+            <strong>One Question at a Time:</strong> {quiz.oneQuestionAtATime === false ? "No" : "Yes"}
+          </div>
+          <div className="mb-3">
+            <strong>Webcam Required:</strong> {quiz.webcamRequired ? "Yes" : "No"}
+          </div>
+          <div className="mb-3">
+            <strong>Lock Questions After Answering:</strong> {quiz.lockQuestionsAfterAnswering ? "Yes" : "No"}
+          </div>
+          {quiz.dueDate && (
+            <div className="mb-3">
+              <strong>Due Date:</strong> {quiz.dueDate}
+            </div>
+          )}
+          {quiz.availableDate && (
+            <div className="mb-3">
+              <strong>Available:</strong> {quiz.availableDate}
+            </div>
+          )}
+          {quiz.untilDate && (
+            <div className="mb-3">
+              <strong>Until:</strong> {quiz.untilDate}
+            </div>
+          )}
+          <div className="mb-3">
+            <strong>Questions:</strong> {quiz.questions?.length || 0}
+          </div>
         </div>
-      )}
-      <div className="mb-3">
-        <strong>One Question at a Time:</strong> {quiz.oneQuestionAtATime === false ? "No" : "Yes"}
-      </div>
-      <div className="mb-3">
-        <strong>Webcam Required:</strong> {quiz.webcamRequired ? "Yes" : "No"}
-      </div>
-      <div className="mb-3">
-        <strong>Lock Questions After Answering:</strong> {quiz.lockQuestionsAfterAnswering ? "Yes" : "No"}
-      </div>
-      {quiz.dueDate && (
-        <div className="mb-3">
-          <strong>Due Date:</strong> {quiz.dueDate}
-        </div>
-      )}
-      {quiz.availableDate && (
-        <div className="mb-3">
-          <strong>Available:</strong> {quiz.availableDate}
-        </div>
-      )}
-      {quiz.untilDate && (
-        <div className="mb-3">
-          <strong>Until:</strong> {quiz.untilDate}
-        </div>
-      )}
-      <div className="mb-3">
-        <strong>Questions:</strong> {quiz.questions?.length || 0}
-      </div>
-      <div className="mb-3">
-        <Button
-          variant={quiz.published ? "warning" : "success"}
-          onClick={handlePublishToggle}
-          className="me-2"
-        >
-          {quiz.published ? "Unpublish" : "Publish"}
-        </Button>
-        <Button
-          variant="primary"
-          onClick={() => router.push(`/Courses/${cid}/Quizzes/${qid}/Preview`)}
-          className="me-2"
-        >
-          Preview
-        </Button>
-        <Button
-          variant="primary"
-          onClick={() => router.push(`/Courses/${cid}/Quizzes/${qid}/Editor`)}
-        >
-          Edit
-        </Button>
       </div>
     </div>
   );
@@ -179,52 +188,58 @@ export default function QuizDetails() {
 
     return (
       <div>
-        <h3>{quiz.title}</h3>
-        <div className="mb-3">
-          <strong>Status:</strong> {availabilityStatus}
-        </div>
-        <div className="mb-3">
-          <strong>Points:</strong> {quiz.points || 0}
-        </div>
-        {quiz.timeLimit === false ? null : (
-          <div className="mb-3">
-            <strong>Time Limit:</strong> {quiz.timeLimitMinutes || 20} minutes
-          </div>
-        )}
-        {quiz.dueDate && (
-          <div className="mb-3">
-            <strong>Due:</strong> {quiz.dueDate}
-          </div>
-        )}
-        <div className="mb-3">
-          <strong>Questions:</strong> {quiz.questions?.length || 0}
-        </div>
-        {hasAttempt && (
-          <div className="mb-3">
-            <strong>Last Score:</strong> {latestAttempt.score} / {latestAttempt.totalPoints} (
-              {latestAttempt.totalPoints > 0
-                ? Math.round((latestAttempt.score / latestAttempt.totalPoints) * 100)
-                : 0}
-            %)
-          </div>
-        )}
-        <div className="mb-3">
+        <div className="d-flex justify-content-between align-items-start mb-3">
+          <h3>{quiz.title}</h3>
           {canTakeQuiz && (
             <Button
-              variant="primary"
+              variant="danger"
               onClick={() => router.push(`/Courses/${cid}/Quizzes/${qid}/Take`)}
-              className="me-2"
             >
               {getButtonText()}
             </Button>
           )}
+        </div>
+        <hr />
+        <div className="row">
+          <div className="col-md-6">
+            <div className="mb-3">
+              <strong>Status:</strong> {availabilityStatus}
+            </div>
+            <div className="mb-3">
+              <strong>Points:</strong> {quiz.points || 0}
+            </div>
+            {quiz.timeLimit === false ? null : (
+              <div className="mb-3">
+                <strong>Time Limit:</strong> {quiz.timeLimitMinutes || 20} minutes
+              </div>
+            )}
+            {quiz.dueDate && (
+              <div className="mb-3">
+                <strong>Due:</strong> {quiz.dueDate}
+              </div>
+            )}
+            <div className="mb-3">
+              <strong>Questions:</strong> {quiz.questions?.length || 0}
+            </div>
+          </div>
           {hasAttempt && (
-            <Button
-              variant="secondary"
-              onClick={() => router.push(`/Courses/${cid}/Quizzes/${qid}/Results`)}
-            >
-              View Results
-            </Button>
+            <div className="col-md-6">
+              <div className="mb-3">
+                <strong>Last Score:</strong> {latestAttempt.score} / {latestAttempt.totalPoints} (
+                  {latestAttempt.totalPoints > 0
+                    ? Math.round((latestAttempt.score / latestAttempt.totalPoints) * 100)
+                    : 0}
+                %)
+              </div>
+              <div className="mb-3">
+                <Button
+                  variant="secondary"
+                  onClick={() => router.push(`/Courses/${cid}/Quizzes/${qid}/Results`)}
+                >
+                  View Results
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       </div>

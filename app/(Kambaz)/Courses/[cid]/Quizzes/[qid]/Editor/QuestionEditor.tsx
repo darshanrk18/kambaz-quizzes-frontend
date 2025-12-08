@@ -122,6 +122,15 @@ export default function QuestionEditor({
 
   return (
     <div>
+      <div className="d-flex justify-content-end mb-3">
+        <Button variant="secondary" onClick={onCancel} className="me-2">
+          Cancel
+        </Button>
+        <Button variant="success" onClick={handleSave}>
+          Update Question
+        </Button>
+      </div>
+      <hr />
       <Form.Group className="mb-3">
         <Form.Label>Question Type</Form.Label>
         <Form.Select
@@ -176,34 +185,42 @@ export default function QuestionEditor({
       {editedQuestion.questionType === "Multiple Choice" && (
         <div className="mb-3">
           <div className="d-flex justify-content-between align-items-center mb-2">
-            <strong>Options</strong>
+            <Form.Label className="mb-0"><strong>Answers</strong></Form.Label>
             <Button variant="primary" size="sm" onClick={addOption}>
               <FaPlus className="me-1" />
-              Add Option
+              Add Another Answer
             </Button>
           </div>
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {editedQuestion.options?.map((option: any, index: number) => (
             <div key={`opt-${index}-${option.text?.substring(0, 10) || index}`} className="mb-2 d-flex align-items-center">
               <Form.Check
-                type="checkbox"
+                type="radio"
+                name={`correct-answer-${editedQuestion._id}`}
                 checked={option.isCorrect || false}
-                onChange={(e) =>
-                  updateOption(index, "isCorrect", e.target.checked)
-                }
+                onChange={(e) => {
+                  // Uncheck all other options first
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const newOptions = editedQuestion.options.map((opt: any, idx: number) => ({
+                    ...opt,
+                    isCorrect: idx === index ? e.target.checked : false,
+                  }));
+                  setEditedQuestion({ ...editedQuestion, options: newOptions });
+                }}
                 className="me-2"
               />
               <Form.Control
                 type="text"
                 value={option.text || ""}
                 onChange={(e) => updateOption(index, "text", e.target.value)}
-                placeholder="Option text"
+                placeholder={`Answer ${index + 1}`}
                 className="me-2"
               />
               <Button
-                variant="danger"
+                variant="link"
                 size="sm"
                 onClick={() => removeOption(index)}
+                className="text-danger"
               >
                 <FaTrash />
               </Button>
@@ -264,7 +281,7 @@ export default function QuestionEditor({
                 />
               </Form.Group>
               <div className="mb-2">
-                <strong>Correct Answers:</strong>
+                <Form.Label className="mb-1"><strong>Possible Answers:</strong></Form.Label>
                 {blank.correctAnswers?.map((answer: string, answerIndex: number) => (
                   <div key={`ans-${blankIndex}-${answerIndex}-${answer?.substring(0, 10) || answerIndex}`} className="d-flex align-items-center mb-1">
                     <Form.Control
@@ -273,48 +290,42 @@ export default function QuestionEditor({
                       onChange={(e) =>
                         updateCorrectAnswer(blankIndex, answerIndex, e.target.value)
                       }
-                      placeholder="Correct answer"
+                      placeholder={`Answer ${answerIndex + 1}`}
                       className="me-2"
                     />
                     <Button
-                      variant="danger"
+                      variant="link"
                       size="sm"
                       onClick={() => removeCorrectAnswer(blankIndex, answerIndex)}
+                      className="text-danger"
                     >
                       <FaTrash />
                     </Button>
                   </div>
                 ))}
                 <Button
-                  variant="primary"
+                  variant="link"
                   size="sm"
                   onClick={() => addCorrectAnswer(blankIndex)}
-                  className="mt-1"
+                  className="mt-2"
                 >
                   <FaPlus className="me-1" />
-                  Add Answer
+                  Add Another Answer
                 </Button>
               </div>
               <Button
-                variant="danger"
+                variant="link"
                 size="sm"
                 onClick={() => removeBlank(blankIndex)}
+                className="text-danger"
               >
-                <FaTrash /> Remove Blank
+                <FaTrash className="me-1" /> Remove Blank
               </Button>
             </div>
           ))}
         </div>
       )}
 
-      <div className="mt-3">
-        <Button variant="primary" onClick={handleSave} className="me-2">
-          Update Question
-        </Button>
-        <Button variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
     </div>
   );
 }

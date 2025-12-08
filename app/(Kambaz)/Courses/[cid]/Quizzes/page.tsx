@@ -105,74 +105,72 @@ export default function Quizzes() {
             return (
               <ListGroupItem
                 key={quiz._id}
-                className="d-flex flex-column"
+                className="d-flex justify-content-between align-items-center"
               >
-                <div className="d-flex justify-content-between align-items-start w-100 mb-2">
-                  <div className="d-flex align-items-center flex-grow-1">
-                    {quiz.published ? (
-                      <FaCheckCircle
-                        className="text-success me-2"
-                        onClick={() => isFaculty && handlePublishToggle(quiz._id, quiz.published)}
-                        style={{ cursor: isFaculty ? "pointer" : "default" }}
-                        title={isFaculty ? "Click to unpublish" : "Published"}
-                      />
-                    ) : (
-                      <FaTimesCircle
-                        className="text-secondary me-2"
-                        onClick={() => isFaculty && handlePublishToggle(quiz._id, quiz.published)}
-                        style={{ cursor: isFaculty ? "pointer" : "default" }}
-                        title={isFaculty ? "Click to publish" : "Unpublished"}
-                      />
-                    )}
-                    <div className="flex-grow-1">
-                      <button
-                        type="button"
-                        className="btn btn-link text-start p-0 text-decoration-none fw-bold"
-                        style={{ cursor: "pointer", border: "none", background: "none" }}
-                        onClick={() => router.push(`/Courses/${cid}/Quizzes/${quiz._id}`)}
-                      >
-                        {quiz.title}
-                      </button>
-                      <div className="small text-muted">
-                        {availabilityStatus}
-                        {quiz.dueDate && ` • Due ${formatDate(quiz.dueDate)}`}
-                        {quiz.points !== undefined && ` • ${quiz.points} pts`}
-                        {quiz.questions && ` • ${quiz.questions.length} questions`}
-                      </div>
+                <div className="d-flex align-items-center flex-grow-1">
+                  {quiz.published ? (
+                    <FaCheckCircle
+                      className="text-success me-2"
+                      onClick={() => isFaculty && handlePublishToggle(quiz._id, quiz.published)}
+                      style={{ cursor: isFaculty ? "pointer" : "default" }}
+                      title={isFaculty ? "Click to unpublish" : "Published"}
+                    />
+                  ) : (
+                    <FaTimesCircle
+                      className="text-secondary me-2"
+                      onClick={() => isFaculty && handlePublishToggle(quiz._id, quiz.published)}
+                      style={{ cursor: isFaculty ? "pointer" : "default" }}
+                      title={isFaculty ? "Click to publish" : "Unpublished"}
+                    />
+                  )}
+                  <div className="flex-grow-1">
+                    <button
+                      type="button"
+                      className="btn btn-link text-start p-0 text-decoration-none fw-bold"
+                      style={{ cursor: "pointer", border: "none", background: "none" }}
+                      onClick={() => router.push(`/Courses/${cid}/Quizzes/${quiz._id}`)}
+                    >
+                      {quiz.title}
+                    </button>
+                    <div className="small text-muted">
+                      {availabilityStatus}
+                      {quiz.dueDate && ` • Due ${formatDate(quiz.dueDate)}`}
+                      {quiz.points !== undefined && ` • ${quiz.points} pts`}
+                      {quiz.questions && ` • ${quiz.questions.length} questions`}
                     </div>
                   </div>
-                  {isFaculty && (
-                    <Dropdown>
-                      <Dropdown.Toggle
-                        variant="link"
-                        id={`quiz-menu-${quiz._id}`}
-                        className="text-dark"
-                      >
-                        <FaEllipsisV />
-                      </Dropdown.Toggle>
-                      <Dropdown.Menu>
-                        <Dropdown.Item
-                          onClick={() => router.push(`/Courses/${cid}/Quizzes/${quiz._id}/Editor`)}
-                        >
-                          Edit
-                        </Dropdown.Item>
-                        <Dropdown.Item
-                          onClick={() =>
-                            handlePublishToggle(quiz._id, quiz.published)
-                          }
-                        >
-                          {quiz.published ? "Unpublish" : "Publish"}
-                        </Dropdown.Item>
-                        <Dropdown.Item
-                          onClick={() => handleDeleteQuiz(quiz._id)}
-                          className="text-danger"
-                        >
-                          Delete
-                        </Dropdown.Item>
-                      </Dropdown.Menu>
-                    </Dropdown>
-                  )}
                 </div>
+                {isFaculty && (
+                  <Dropdown>
+                    <Dropdown.Toggle
+                      variant="link"
+                      id={`quiz-menu-${quiz._id}`}
+                      className="text-dark"
+                    >
+                      <FaEllipsisV />
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu>
+                      <Dropdown.Item
+                        onClick={() => router.push(`/Courses/${cid}/Quizzes/${quiz._id}/Editor`)}
+                      >
+                        Edit
+                      </Dropdown.Item>
+                      <Dropdown.Item
+                        onClick={() =>
+                          handlePublishToggle(quiz._id, quiz.published)
+                        }
+                      >
+                        {quiz.published ? "Unpublish" : "Publish"}
+                      </Dropdown.Item>
+                      <Dropdown.Item
+                        onClick={() => handleDeleteQuiz(quiz._id)}
+                        className="text-danger"
+                      >
+                        Delete
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+                )}
               </ListGroupItem>
             );
           })}
