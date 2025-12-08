@@ -127,7 +127,7 @@ export default function QuizPreview() {
                     }}
                     className="me-2"
                   />
-                  <label>{option.text}</label>
+                  <label htmlFor={`option-${currentQuestion._id}-${index}`}>{option.text}</label>
                 </div>
               ))}
             </div>
@@ -139,22 +139,24 @@ export default function QuizPreview() {
               <div className="mb-2">
                 <input
                   type="radio"
+                  id={`tf-true-${currentQuestion._id}`}
                   name={`tf-${currentQuestion._id}`}
                   checked={answers[currentQuestion._id] === true}
                   onChange={() => handleAnswerChange(currentQuestion._id, true)}
                   className="me-2"
                 />
-                <label>True</label>
+                <label htmlFor={`tf-true-${currentQuestion._id}`}>True</label>
               </div>
               <div className="mb-2">
                 <input
                   type="radio"
+                  id={`tf-false-${currentQuestion._id}`}
                   name={`tf-${currentQuestion._id}`}
                   checked={answers[currentQuestion._id] === false}
                   onChange={() => handleAnswerChange(currentQuestion._id, false)}
                   className="me-2"
                 />
-                <label>False</label>
+                <label htmlFor={`tf-false-${currentQuestion._id}`}>False</label>
               </div>
             </div>
           )}
@@ -164,10 +166,11 @@ export default function QuizPreview() {
             <div>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {currentQuestion.blanks?.map((blank: any, blankIndex: number) => (
-                <div key={blankIndex} className="mb-2">
-                  <label>{blank.text}</label>
+                <div key={`preview-blank-${blankIndex}-${blank.text?.substring(0, 10) || blankIndex}`} className="mb-2">
+                  <label htmlFor={`blank-${currentQuestion._id}-${blankIndex}`}>{blank.text}</label>
                   <input
                     type="text"
+                    id={`blank-${currentQuestion._id}-${blankIndex}`}
                     value={answers[currentQuestion._id]?.[blankIndex] || ""}
                     onChange={(e) => {
                       const currentAnswers = answers[currentQuestion._id] || [];

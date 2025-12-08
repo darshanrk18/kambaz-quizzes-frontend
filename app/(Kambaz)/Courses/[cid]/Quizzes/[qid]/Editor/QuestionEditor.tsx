@@ -85,15 +85,13 @@ export default function QuestionEditor({
   };
 
   const removeBlank = (index: number) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newBlanks = editedQuestion.blanks.filter(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (_: any, i: number) => i !== index
+      (_: unknown, i: number) => i !== index
     );
     setEditedQuestion({ ...editedQuestion, blanks: newBlanks });
   };
 
-  const updateBlank = (index: number, field: string, value: any) => {
+  const updateBlank = (index: number, field: string, value: unknown) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newBlanks = [...editedQuestion.blanks];
     newBlanks[index] = { ...newBlanks[index], [field]: value };
@@ -188,7 +186,7 @@ export default function QuestionEditor({
           </div>
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {editedQuestion.options?.map((option: any, index: number) => (
-            <div key={index} className="mb-2 d-flex align-items-center">
+            <div key={`opt-${index}-${option.text?.substring(0, 10) || index}`} className="mb-2 d-flex align-items-center">
               <Form.Check
                 type="checkbox"
                 checked={option.isCorrect || false}
@@ -270,7 +268,7 @@ export default function QuestionEditor({
               <div className="mb-2">
                 <strong>Correct Answers:</strong>
                 {blank.correctAnswers?.map((answer: string, answerIndex: number) => (
-                  <div key={answerIndex} className="d-flex align-items-center mb-1">
+                  <div key={`ans-${blankIndex}-${answerIndex}-${answer?.substring(0, 10) || answerIndex}`} className="d-flex align-items-center mb-1">
                     <Form.Control
                       type="text"
                       value={answer}
