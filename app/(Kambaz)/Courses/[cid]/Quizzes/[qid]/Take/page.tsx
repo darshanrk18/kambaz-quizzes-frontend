@@ -113,7 +113,6 @@ export default function TakeQuiz() {
       if (!answer) return;
 
       if (question.questionType === "Multiple Choice") {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const correctOptions = (question.options || [])
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((opt: any, idx: number) => (opt.isCorrect ? idx : -1))
