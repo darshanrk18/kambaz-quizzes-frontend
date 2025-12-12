@@ -17,6 +17,8 @@ export default function Quizzes() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { currentUser } = useSelector((state: any) => state.accountReducer);
   const isFaculty = currentUser?.role === "FACULTY";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [dropdownStates, setDropdownStates] = useState<Record<string, boolean>>({});
 
   const fetchQuizzes = useCallback(async () => {
     try {
@@ -38,6 +40,18 @@ export default function Quizzes() {
   useEffect(() => {
     fetchQuizzes();
   }, [fetchQuizzes]);
+
+  // Force Popper position update when dropdowns open
+  useEffect(() => {
+    const openDropdownId = Object.keys(dropdownStates).find(id => dropdownStates[id]);
+    if (openDropdownId) {
+      // Trigger a resize event to force Popper to recalculate position
+      const timer = setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [dropdownStates]);
 
   // Note: Quiz creation is handled in QuizzesControls component
 
@@ -117,7 +131,7 @@ export default function Quizzes() {
         </div>
       ) : (
         <div style={{ maxHeight: "70vh", overflowY: "auto", position: "relative" }}>
-          <ListGroup className="rounded-0" style={{ position: "relative" }}>
+          <ListGroup className="rounded-0">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {filteredQuizzes.map((quiz: any) => {
             const availabilityStatus = getAvailabilityStatus(quiz);
@@ -161,7 +175,13 @@ export default function Quizzes() {
                   </div>
                 </div>
                 {isFaculty && (
-                  <Dropdown>
+                  <Dropdown 
+                    align="end"
+                    show={dropdownStates[quiz._id] || false}
+                    onToggle={(isOpen) => {
+                      setDropdownStates(prev => ({ ...prev, [quiz._id]: isOpen }));
+                    }}
+                  >
                     <Dropdown.Toggle
                       variant="link"
                       id={`quiz-menu-${quiz._id}`}
@@ -174,6 +194,18 @@ export default function Quizzes() {
                         strategy: "fixed",
                         modifiers: [
                           {
+                            name: "computeStyles",
+                            options: {
+                              adaptive: true,
+                            },
+                          },
+                          {
+                            name: "offset",
+                            options: {
+                              offset: [0, 4],
+                            },
+                          },
+                          {
                             name: "preventOverflow",
                             options: {
                               boundary: "viewport",
@@ -182,8 +214,9 @@ export default function Quizzes() {
                           },
                           {
                             name: "flip",
+                            enabled: true,
                             options: {
-                              fallbackPlacements: ["top", "bottom", "left", "right"],
+                              fallbackPlacements: ["top-end", "bottom-start", "top-start"],
                             },
                           },
                         ],
