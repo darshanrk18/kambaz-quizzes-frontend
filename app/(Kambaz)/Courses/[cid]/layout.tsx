@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { useParams, useRouter } from "next/navigation";
 import { FaAlignJustify } from "react-icons/fa6";
 import * as courseClient from "../client";
+import * as userClient from "../../Account/client";
 
 export default function CoursesLayout({ children }: { children: ReactNode }) {
   const { cid } = useParams();
@@ -34,27 +35,65 @@ export default function CoursesLayout({ children }: { children: ReactNode }) {
   }, [cid]);
 
   useEffect(() => {
+    console.log("=== COURSE LAYOUT ===");
+    console.log("User:", currentUser);
+    console.log("User ID:", currentUser?._id);
+    console.log("User Role:", currentUser?.role);
+    console.log("Course ID:", cid);
+    console.log("Enrollments (Redux):", enrollments);
+    console.log("Enrollments length:", enrollments?.length || 0);
+
     if (!currentUser) {
+      console.log("No current user, redirecting to Signin");
       router.push("/Account/Signin");
       return;
     }
 
     // Faculty can access all courses
     if (currentUser.role === "FACULTY") {
+      console.log("User is FACULTY, allowing access");
       return;
     }
 
-    // Check if student is enrolled
-    const isEnrolled = enrollments.some(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (enrollment: any) =>
-        enrollment.user === currentUser._id && enrollment.course === cid
-    );
+    // For students, check enrollment by fetching their courses from backend
+    // This matches how Dashboard checks enrollment
+    const checkEnrollment = async () => {
+      try {
+        console.log("Fetching user's enrolled courses from backend...");
+        const enrolledCourses = await userClient.findMyCourses();
+        console.log("User's enrolled courses:", enrolledCourses);
+        
+        // Check if current course is in enrolled courses
+        const isEnrolled = enrolledCourses?.some(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (course: any) => {
+            const courseMatch = 
+              String(course._id) === String(cid) ||
+              course._id === cid;
+            return courseMatch;
+          }
+        );
 
-    if (!isEnrolled) {
-      router.push("/Dashboard");
-    }
-  }, [currentUser, enrollments, cid, router]);
+        console.log("Is enrolled (backend check)?", isEnrolled);
+        
+        if (!isEnrolled) {
+          console.log("Student not enrolled, redirecting to Dashboard");
+          console.log("Enrollment check details:");
+          console.log("- Looking for course ID:", cid);
+          console.log("- User's enrolled courses:", enrolledCourses);
+          router.push("/Dashboard");
+        } else {
+          console.log("Student is enrolled, allowing access");
+        }
+      } catch (error) {
+        console.error("Error checking enrollment:", error);
+        // On error, don't block access - let user try
+        console.log("Error fetching enrollment, allowing access (will fail gracefully if not enrolled)");
+      }
+    };
+
+    checkEnrollment();
+  }, [currentUser, cid, router]);
 
   return (
     <div id="wd-courses">

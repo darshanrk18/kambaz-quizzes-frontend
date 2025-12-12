@@ -14,7 +14,7 @@ export default function QuizDetailsEditor({
   return (
     <div className="mt-3">
       <Form.Group className="mb-3">
-        <Form.Label>Title</Form.Label>
+        <Form.Label>Title *</Form.Label>
         <Form.Control
           type="text"
           value={quiz.title || ""}
@@ -182,30 +182,39 @@ export default function QuizDetailsEditor({
       </Form.Group>
 
       <Form.Group className="mb-3">
-        <Form.Label>Due Date</Form.Label>
+        <Form.Label>Due Date *</Form.Label>
         <Form.Control
           type="date"
           value={quiz.dueDate || ""}
           onChange={(e) => setQuiz({ ...quiz, dueDate: e.target.value })}
         />
+        <Form.Text className="text-muted">
+          Required for publishing
+        </Form.Text>
       </Form.Group>
 
       <Form.Group className="mb-3">
-        <Form.Label>Available Date</Form.Label>
+        <Form.Label>Available From *</Form.Label>
         <Form.Control
           type="date"
           value={quiz.availableDate || ""}
           onChange={(e) => setQuiz({ ...quiz, availableDate: e.target.value })}
         />
+        <Form.Text className="text-muted">
+          Required for publishing
+        </Form.Text>
       </Form.Group>
 
       <Form.Group className="mb-3">
-        <Form.Label>Until Date</Form.Label>
+        <Form.Label>Until *</Form.Label>
         <Form.Control
           type="date"
           value={quiz.untilDate || ""}
           onChange={(e) => setQuiz({ ...quiz, untilDate: e.target.value })}
         />
+        <Form.Text className="text-muted">
+          Required for publishing
+        </Form.Text>
       </Form.Group>
     </div>
   );

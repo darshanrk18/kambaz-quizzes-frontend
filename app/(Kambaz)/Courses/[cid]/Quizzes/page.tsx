@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ListGroup, ListGroupItem, Dropdown } from "react-bootstrap";
+import { ListGroup, ListGroupItem, Dropdown, Form } from "react-bootstrap";
 import { FaEllipsisV, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import * as client from "./client";
@@ -13,6 +13,7 @@ export default function Quizzes() {
   const router = useRouter();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { currentUser } = useSelector((state: any) => state.accountReducer);
   const isFaculty = currentUser?.role === "FACULTY";
@@ -82,12 +83,26 @@ export default function Quizzes() {
     return date.toLocaleDateString();
   };
 
+  // Filter quizzes by search query
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filteredQuizzes = quizzes.filter((quiz: any) => {
+    if (!searchQuery.trim()) return true;
+    return quiz.title.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   return (
     <div>
       {isFaculty && <QuizzesControls />}
-      <br />
-      <br />
-      <br />
+      {/* Search Bar */}
+      <div className="mb-3 mt-3">
+        <Form.Control
+          type="text"
+          placeholder="Search quizzes by title..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="rounded-0"
+        />
+      </div>
       {quizzes.length === 0 ? (
         <div className="text-center p-5">
           <p>
@@ -96,10 +111,14 @@ export default function Quizzes() {
               : "No quizzes available."}
           </p>
         </div>
+      ) : filteredQuizzes.length === 0 ? (
+        <div className="text-center p-5">
+          <p>No quizzes match your search: &quot;{searchQuery}&quot;</p>
+        </div>
       ) : (
         <ListGroup className="rounded-0">
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {quizzes.map((quiz: any) => {
+          {filteredQuizzes.map((quiz: any) => {
             const availabilityStatus = getAvailabilityStatus(quiz);
             
             return (

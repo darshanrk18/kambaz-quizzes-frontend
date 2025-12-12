@@ -41,3 +41,10 @@ export const findLatestAttempt = async (userId: string, quizId: string) => {
   return response.data;
 };
 
+export const getAttemptHistory = async (userId: string, quizId: string) => {
+  const response = await axiosWithCredentials.get(
+    `${HTTP_SERVER}/api/users/${userId}/quizzes/${quizId}/attempts`
+  );
+  return response.data;
+};
+

@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 import * as userClient from "../Account/client";
 import * as courseClient from "../Courses/client";
 import * as enrollmentClient from "../Courses/enrollmentsClient";
@@ -22,22 +23,15 @@ export default function Dashboard() {
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { currentUser } = useSelector((state: any) => state.accountReducer);
+  const router = useRouter();
+
+  // Track render count for diagnostics
+  const renderCount = useRef(0);
+  renderCount.current++;
+  console.log("=== DASHBOARD RENDER #" + renderCount.current + " ===");
 
   // Check if user is faculty
   const isFaculty = currentUser?.role === "FACULTY";
-
-  const fetchCourses = async () => {
-    try {
-      const enrolledCourses = (await userClient.findMyCourses()) || [];
-      console.log("Fetched Courses:", enrolledCourses);
-      setCourses(enrolledCourses);
-
-      const allCoursesData = (await courseClient.fetchAllCourses()) || [];
-      setAllCourses(allCoursesData);
-    } catch (error) {
-      console.error("Error fetching courses:", error);
-    }
-  };
 
   // Add new course (Faculty only)
   const addNewCourse = async () => {
@@ -78,11 +72,44 @@ export default function Dashboard() {
     }
   };
 
+  // Fetch courses function - moved inside useEffect to prevent infinite loop
+  useEffect(() => {
+    console.log("=== DASHBOARD useEffect TRIGGERED ===");
+    console.log("currentUser exists:", !!currentUser);
+    console.log("currentUser._id:", currentUser?._id);
+    console.log("currentUser object:", currentUser);
+    
+    const fetchCourses = async () => {
+      if (!currentUser?._id) {
+        console.log("No user ID, skipping fetch");
+        return;
+      }
+      
+      try {
+        console.log("Fetching courses for user:", currentUser._id);
+        const enrolledCourses = (await userClient.findMyCourses()) || [];
+        console.log("Fetched Courses:", enrolledCourses);
+        setCourses(enrolledCourses);
+
+        const allCoursesData = (await courseClient.fetchAllCourses()) || [];
+        setAllCourses(allCoursesData);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      }
+    };
+
+    fetchCourses();
+  }, [currentUser?._id]); // Only run when user ID changes, not on every render
+
   // Enroll in course (Student)
   const enrollInCourse = async (courseId: string) => {
     try {
       await enrollmentClient.enrollInCourse("current", courseId);
-      fetchCourses();
+      // Refetch courses after enrollment
+      const enrolledCourses = (await userClient.findMyCourses()) || [];
+      setCourses(enrolledCourses);
+      const allCoursesData = (await courseClient.fetchAllCourses()) || [];
+      setAllCourses(allCoursesData);
     } catch (error) {
       console.error(error);
     }
@@ -92,15 +119,15 @@ export default function Dashboard() {
   const unenrollFromCourse = async (courseId: string) => {
     try {
       await enrollmentClient.unenrollFromCourse("current", courseId);
-      fetchCourses();
+      // Refetch courses after unenrollment
+      const enrolledCourses = (await userClient.findMyCourses()) || [];
+      setCourses(enrolledCourses);
+      const allCoursesData = (await courseClient.fetchAllCourses()) || [];
+      setAllCourses(allCoursesData);
     } catch (error) {
       console.error(error);
     }
   };
-
-  useEffect(() => {
-    fetchCourses();
-  }, [currentUser]);
 
   const isEnrolled = (courseId: string) => {
     return courses.some((c) => c._id === courseId);
@@ -190,7 +217,20 @@ export default function Dashboard() {
                     >
                       {course.description}
                     </p>
-                    <button className="btn btn-primary"> Go </button>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log("=== GO BUTTON CLICKED ===");
+                        console.log("Course ID:", course._id);
+                        console.log("Course name:", course.name);
+                        console.log("Navigating to:", `/Courses/${course._id}/Home`);
+                        router.push(`/Courses/${course._id}/Home`);
+                      }}
+                    > 
+                      Go 
+                    </button>
 
                     {/* Faculty Controls */}
                     {isFaculty && (
