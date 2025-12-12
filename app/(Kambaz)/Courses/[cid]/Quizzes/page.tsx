@@ -21,12 +21,12 @@ export default function Quizzes() {
   const fetchQuizzes = useCallback(async () => {
     try {
       const quizzesData = await client.findQuizzesForCourse(cid as string);
-      // Sort by availableDate
+      // Sort by availableDate (ascending - earliest dates first)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sorted = quizzesData.sort((a: any, b: any) => {
-        const dateA = a.availableDate || "";
-        const dateB = b.availableDate || "";
-        return dateA.localeCompare(dateB);
+        const dateA = a.availableDate ? new Date(a.availableDate).getTime() : 0;
+        const dateB = b.availableDate ? new Date(b.availableDate).getTime() : 0;
+        return dateA - dateB;
       });
       setQuizzes(sorted);
     } catch (error) {
@@ -116,9 +116,10 @@ export default function Quizzes() {
           <p>No quizzes match your search: &quot;{searchQuery}&quot;</p>
         </div>
       ) : (
-        <ListGroup className="rounded-0">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {filteredQuizzes.map((quiz: any) => {
+        <div style={{ maxHeight: "70vh", overflowY: "auto" }}>
+          <ListGroup className="rounded-0">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {filteredQuizzes.map((quiz: any) => {
             const availabilityStatus = getAvailabilityStatus(quiz);
             
             return (
@@ -193,7 +194,8 @@ export default function Quizzes() {
               </ListGroupItem>
             );
           })}
-        </ListGroup>
+          </ListGroup>
+        </div>
       )}
     </div>
   );
