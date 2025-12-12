@@ -8,12 +8,9 @@ import * as quizClient from "../../client";
 import * as attemptClient from "./client";
 
 export default function TakeQuiz() {
-  console.log("=== COMPONENT RENDER START ===");
-
   // 1. GET PARAMS/ROUTER (always run)
   const { cid, qid } = useParams();
   const router = useRouter();
-  console.log("=== PARAMS/ROUTER ===", { cid, qid });
 
   // 2. ALL useState (always run)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,47 +23,41 @@ export default function TakeQuiz() {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [timerExpired, setTimerExpired] = useState(false);
   const [questionOrder, setQuestionOrder] = useState<number[]>([]);
-  const [questionsInitialized, setQuestionsInitialized] = useState(false);
-  console.log("=== ALL STATES INITIALIZED ===");
-  console.log("quiz:", !!quiz, "attempt:", !!attempt, "currentQuestionIndex:", currentQuestionIndex);
-  console.log("questionOrder:", questionOrder);
-  console.log("questionsInitialized:", questionsInitialized);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 3. ALL useSelector (always run)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { currentUser } = useSelector((state: any) => state.accountReducer);
-  console.log("=== SELECTOR RUN ===");
-  console.log("currentUser exists:", !!currentUser);
-  console.log("currentUser email:", currentUser?.email);
 
   // 4. ALL useRef (always run)
-  const renderCount = useRef(0);
-  renderCount.current++;
-  console.log("=== RENDER COUNT:", renderCount.current, " ===");
+  const hasAutoSubmitted = useRef(false);
+  const questionOrderInitialized = useRef(false);
 
   // 5. ALL useCallback (always run - in same order every time)
   const fetchQuiz = useCallback(async () => {
-    console.log("=== FETCH QUIZ START ===");
-    console.log("Quiz ID:", qid);
     try {
       const quizData = await quizClient.findQuizById(qid as string);
-      console.log("=== QUIZ FETCHED ===", quizData);
       setQuiz(quizData);
     } catch (error) {
-      console.error("=== FETCH QUIZ ERROR ===", error);
+      console.error("Error fetching quiz:", error);
     }
   }, [qid]);
 
   const startAttempt = useCallback(async () => {
-    console.log("=== START ATTEMPT ===");
-    console.log("Quiz ID:", qid);
-    console.log("Current user:", currentUser?._id);
     try {
       const newAttempt = await attemptClient.createAttempt(qid as string);
-      console.log("=== ATTEMPT CREATED ===", newAttempt);
       setAttempt(newAttempt);
+      
+      // If attempt has saved state, restore it
+      if (newAttempt.questionOrder && newAttempt.questionOrder.length > 0) {
+        setQuestionOrder(newAttempt.questionOrder);
+        questionOrderInitialized.current = true;
+      }
+      if (newAttempt.currentQuestionIndex !== undefined) {
+        setCurrentQuestionIndex(newAttempt.currentQuestionIndex);
+      }
     } catch (error: unknown) {
-      console.error("=== START ATTEMPT ERROR ===", error);
+      console.error("Error starting attempt:", error);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((error as any)?.response?.status === 403) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -74,13 +65,11 @@ export default function TakeQuiz() {
         router.push(`/Courses/${cid}/Quizzes/${qid}`);
       }
     }
-  }, [qid, router, cid, currentUser]);
+  }, [qid, router, cid]);
 
   // Calculate score helper function
   const calculateScore = useCallback(() => {
-    console.log("=== CALCULATE SCORE ===");
     const questions = quiz?.questions || [];
-    console.log("Questions count:", questions.length);
     let totalScore = 0;
     let totalPoints = 0;
 
@@ -89,7 +78,6 @@ export default function TakeQuiz() {
       const points = question.points || 0;
       totalPoints += points;
       const answer = answers[question._id];
-      // IMPORTANT: Check for undefined/null, not falsy (0 and false are valid answers!)
       if (answer === undefined || answer === null) return;
 
       if (question.questionType === "Multiple Choice") {
@@ -101,11 +89,9 @@ export default function TakeQuiz() {
         const selectedIndex = typeof answer === "number" ? answer : -1;
         const pointsEarned = correctOptionIndex === selectedIndex ? points : 0;
         totalScore += pointsEarned;
-        console.log(`Question ${question._id}: ${pointsEarned}/${points} points`);
       } else if (question.questionType === "True/False") {
         const pointsEarned = answer === question.correctAnswer ? points : 0;
         totalScore += pointsEarned;
-        console.log(`Question ${question._id}: ${pointsEarned}/${points} points`);
       } else if (question.questionType === "Fill in the Blank") {
         let blankScore = 0;
         const pointsPerBlank = points / (question.blanks?.length || 1);
@@ -120,21 +106,17 @@ export default function TakeQuiz() {
           }
         });
         totalScore += blankScore;
-        console.log(`Question ${question._id}: ${blankScore}/${points} points`);
       }
     });
 
-    console.log("=== SCORE CALCULATED ===", { score: totalScore, totalPoints });
     return { score: totalScore, totalPoints };
   }, [quiz, answers]);
 
   // Helper to format answers for saving/updating attempt
   const formatAnswersForSave = useCallback(() => {
-    console.log("=== FORMAT ANSWERS FOR SAVE ===");
     const questions = quiz?.questions || [];
     const formatted = questions.map((question: any) => {
       const answer = answers[question._id];
-      // IMPORTANT: Check for undefined/null, not falsy (0 is a valid answer!)
       if (answer === undefined || answer === null) {
         return {
           questionId: question._id,
@@ -170,32 +152,28 @@ export default function TakeQuiz() {
       }
       return { questionId: question._id };
     });
-    console.log("=== FORMATTED ANSWERS ===", formatted);
     return formatted;
   }, [answers, quiz]);
 
-  const handleSubmit = useCallback(async (skipConfirmation = false) => {
-    console.log("=== HANDLE SUBMIT START ===");
-    console.log("skipConfirmation:", skipConfirmation);
-    if (!skipConfirmation && !globalThis.confirm("Are you sure you want to submit this quiz? You cannot change your answers after submitting.")) {
-      console.log("=== SUBMIT CANCELLED BY USER ===");
+  const handleSubmit = useCallback(async (isAutoSubmit = false) => {
+    // Prevent double submission
+    if (isSubmitting) {
+      console.log("Already submitting, ignoring duplicate call");
+      return;
+    }
+
+    if (!isAutoSubmit && !globalThis.confirm("Are you sure you want to submit this quiz? You cannot change your answers after submitting.")) {
       return;
     }
     
+    setIsSubmitting(true);
+    
     try {
-      console.log("=== SUBMITTING QUIZ ===");
-      console.log("Attempt ID:", attempt._id);
-      console.log("All answers:", answers);
-      console.log("Current time:", new Date().toISOString());
-      
-      console.log("=== CALCULATING SCORE FOR SUBMIT ===");
       const { score, totalPoints } = calculateScore();
       const questions = quiz?.questions || [];
-      // Convert answers to the format expected by the backend
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const formattedAnswers = questions.map((question: any) => {
         const answer = answers[question._id];
-        // IMPORTANT: Check for undefined/null, not falsy (0 is a valid answer!)
         if (answer === undefined || answer === null) {
           return {
             questionId: question._id,
@@ -230,269 +208,243 @@ export default function TakeQuiz() {
         return { questionId: question._id };
       });
 
-      console.log("=== SUBMITTING ATTEMPT ===");
-      console.log("Attempt ID:", attempt._id);
-      console.log("Score:", score, "Total Points:", totalPoints);
-      const response = await attemptClient.submitAttempt(attempt._id, formattedAnswers, score, totalPoints);
-      console.log("=== SUBMISSION SUCCESSFUL ===");
-      console.log("Response:", response);
-      console.log("Score:", response?.score || score);
-      console.log("Total points:", response?.totalPoints || totalPoints);
+      await attemptClient.submitAttempt(attempt._id, formattedAnswers, score, totalPoints);
       
-      // IMPORTANT: Clear any cached attempt data
-      console.log("=== CLEARING CACHED ATTEMPT DATA ===");
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem(`quiz_attempt_${qid}`);
-      }
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem(`quiz_attempt_${qid}`);
+      // Mark as auto-submitted if timer expired
+      if (isAutoSubmit) {
+        hasAutoSubmitted.current = true;
       }
       
       // Navigate to results page
-      console.log("=== NAVIGATING TO RESULTS PAGE ===");
       router.push(`/Courses/${cid}/Quizzes/${qid}/Results`);
     } catch (error) {
-      console.error("=== SUBMISSION FAILED ===", error);
+      console.error("Submission failed:", error);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const errorMessage = (error as any)?.response?.data?.message || "Failed to submit quiz. Please try again.";
       alert(errorMessage);
+      setIsSubmitting(false);
     }
-  }, [quiz, answers, attempt, calculateScore, router, cid, qid]);
-
-  console.log("=== ALL CALLBACKS DEFINED ===");
+  }, [quiz, answers, attempt, calculateScore, router, cid, qid, isSubmitting]);
 
   // 6. ALL useEffect (always run - NEVER conditional)
+  
+  // Fetch quiz data
   useEffect(() => {
-    console.log("=== FETCH QUIZ EFFECT ===");
     fetchQuiz();
   }, [fetchQuiz]);
 
-  // Check if attempt is already submitted before starting new one
+  // Start or resume attempt
   useEffect(() => {
-    const loadAttempt = async () => {
-      if (!currentUser?._id || !qid) {
-        console.log("=== LOAD ATTEMPT SKIPPED - Missing user or quiz ID ===");
-        return;
-      }
-      
-      try {
-        console.log("=== LOADING ATTEMPT ===");
-        console.log("User ID:", currentUser._id);
-        console.log("Quiz ID:", qid);
-        
-        const existingAttempt = await attemptClient.findLatestAttempt(currentUser._id, qid as string);
-        console.log("Existing attempt:", existingAttempt);
-        
-        if (existingAttempt && existingAttempt.submittedAt) {
-          console.log("⚠️ Attempt already submitted! Redirecting to results.");
-          console.log("Submitted at:", existingAttempt.submittedAt);
-          router.push(`/Courses/${cid}/Quizzes/${qid}/Results`);
-          return;
-        }
-        
-        console.log("=== NO SUBMITTED ATTEMPT FOUND - CONTINUING NORMAL FLOW ===");
-      } catch (error) {
-        console.error("=== ERROR LOADING ATTEMPT ===", error);
-        // If there's an error (e.g., no attempt exists), continue with normal flow
-        console.log("Continuing with normal attempt creation flow...");
-      }
-    };
-    
-    if (currentUser && qid && !attempt) {
-      loadAttempt();
-    }
-  }, [currentUser, qid, attempt, router, cid]);
-
-  useEffect(() => {
-    console.log("=== START ATTEMPT EFFECT ===");
-    console.log("currentUser:", !!currentUser);
-    console.log("quiz:", !!quiz);
-    console.log("attempt:", !!attempt);
-    console.log("quiz.published:", quiz?.published);
     if (currentUser && quiz && !attempt && quiz.published) {
-      console.log("=== CONDITIONS MET - STARTING ATTEMPT ===");
       startAttempt();
-    } else {
-      console.log("=== CONDITIONS NOT MET - SKIPPING ATTEMPT START ===");
     }
   }, [currentUser, quiz, attempt, startAttempt]);
 
-  // Initialize question order (shuffle if needed) - ONCE when quiz loads
+  // Restore saved state from attempt (FIRST PRIORITY - before question order init)
   useEffect(() => {
-    if (quiz && quiz.questions && !questionsInitialized) {
-      console.log("=== INITIALIZING QUESTION ORDER ===");
-      console.log("Quiz shuffleAnswers setting:", quiz.shuffleAnswers);
-      console.log("Number of questions:", quiz.questions.length);
-      
-      let order: number[] = [];
-      if (quiz.shuffleAnswers === true) {
-        // Shuffle the questions
-        order = quiz.questions.map((_, index) => index);
-        // Fisher-Yates shuffle algorithm
-        for (let i = order.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [order[i], order[j]] = [order[j], order[i]];
-        }
-        console.log("Questions SHUFFLED. Order:", order);
-      } else {
-        // Keep original order
-        order = quiz.questions.map((_, index) => index);
-        console.log("Questions NOT shuffled. Order:", order);
-      }
-      
-      setQuestionOrder(order);
-      setQuestionsInitialized(true);
+    if (!attempt || !quiz || !quiz.questions) return;
+    
+    // Restore question order FIRST (if exists in attempt)
+    if (attempt.questionOrder && Array.isArray(attempt.questionOrder) && attempt.questionOrder.length > 0) {
+      setQuestionOrder(attempt.questionOrder);
+      questionOrderInitialized.current = true;
     }
-  }, [quiz, questionsInitialized]);
-
-  // Restore saved state from attempt (question index + answers)
-  useEffect(() => {
-    console.log("=== RESTORE SAVED STATE EFFECT ===");
-    console.log("attempt:", !!attempt);
-    if (attempt && attempt.currentQuestionIndex !== undefined) {
-      console.log("=== RESTORING QUESTION INDEX ===", attempt.currentQuestionIndex);
+    
+    // Restore current question index
+    if (attempt.currentQuestionIndex !== undefined && attempt.currentQuestionIndex !== null) {
       setCurrentQuestionIndex(attempt.currentQuestionIndex);
     }
-    if (attempt && attempt.answers) {
-      console.log("=== RESTORING ANSWERS ===", attempt.answers);
+    
+    // Restore answers
+    if (attempt.answers && Array.isArray(attempt.answers) && attempt.answers.length > 0) {
       const savedAnswers: Record<string, unknown> = {};
       attempt.answers.forEach((ans: any) => {
-        if (ans.selectedOptions && ans.selectedOptions.length > 0) {
-          savedAnswers[ans.questionId] = ans.selectedOptions[0];
-        }
-        if (ans.trueFalseAnswer !== undefined) {
-          savedAnswers[ans.questionId] = ans.trueFalseAnswer;
-        }
-        if (ans.fillInAnswers) {
-          savedAnswers[ans.questionId] = ans.fillInAnswers;
+        if (!ans) return;
+        
+        const questionId = ans.questionId?.toString ? ans.questionId.toString() : ans.questionId;
+        if (!questionId) return;
+        
+        // Verify question exists in quiz
+        const questionExists = quiz.questions.some((q: any) => {
+          const qId = q._id?.toString ? q._id.toString() : q._id;
+          return qId === questionId;
+        });
+        
+        if (!questionExists) return;
+        
+        if (ans.selectedOptions && Array.isArray(ans.selectedOptions) && ans.selectedOptions.length > 0) {
+          savedAnswers[questionId] = ans.selectedOptions[0];
+        } else if (ans.trueFalseAnswer !== undefined && ans.trueFalseAnswer !== null) {
+          savedAnswers[questionId] = ans.trueFalseAnswer;
+        } else if (ans.fillInAnswers && Array.isArray(ans.fillInAnswers)) {
+          savedAnswers[questionId] = ans.fillInAnswers;
         }
       });
-      setAnswers(savedAnswers);
+      
+      if (Object.keys(savedAnswers).length > 0) {
+        setAnswers(savedAnswers);
+      }
     }
-  }, [attempt]);
+  }, [attempt, quiz]);
 
-  // Compute and update time remaining (if quiz has a time limit)
+  // Initialize question order (ONLY if not restored from attempt)
   useEffect(() => {
-    console.log("=== TIMER COUNTDOWN EFFECT ===");
-    console.log("quiz:", !!quiz);
-    console.log("attempt:", !!attempt);
-    console.log("quiz.timeLimit:", quiz?.timeLimit);
-    console.log("quiz.timeLimitMinutes:", quiz?.timeLimitMinutes);
-    console.log("timeRemaining:", timeRemaining);
+    if (!quiz || !quiz.questions || !attempt) return;
     
-    if (!quiz || !attempt || !quiz.timeLimit || !quiz.timeLimitMinutes) {
-      console.log("=== TIMER NOT ACTIVE - SKIPPING ===");
+    // Skip if already initialized (restored from attempt or already set)
+    if (questionOrderInitialized.current || questionOrder.length > 0) return;
+    
+    let order: number[] = [];
+    
+    // Check if should shuffle
+    if (quiz.shuffleAnswers === true) {
+      // Shuffle the questions using Fisher-Yates algorithm
+      order = quiz.questions.map((_: any, index: number) => index);
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+    } else {
+      // Keep original order
+      order = quiz.questions.map((_: any, index: number) => index);
+    }
+    
+    setQuestionOrder(order);
+    questionOrderInitialized.current = true;
+    
+    // Save the new order to backend immediately
+    if (attempt._id && !attempt.submittedAt && !attempt.submitted) {
+      attemptClient.updateAttempt(attempt._id, {
+        questionOrder: order,
+      }).catch((err) => {
+        console.error("Error saving question order:", err);
+      });
+    }
+  }, [quiz, attempt, questionOrder]);
+
+  // Timer countdown - calculate remaining time continuously
+  useEffect(() => {
+    if (!quiz || !attempt) {
+      setTimeRemaining(null);
       return;
     }
     
-    console.log("=== STARTING TIMER COUNTDOWN ===");
+    if (!quiz.timeLimit || !quiz.timeLimitMinutes) {
+      setTimeRemaining(null);
+      return;
+    }
+    
+    // Skip timer if attempt is already submitted
+    if (attempt.submittedAt || attempt.submitted) {
+      setTimeRemaining(0);
+      return;
+    }
+    
+    // Validate startedAt
+    if (!attempt.startedAt) {
+      console.error("No startedAt found in attempt!");
+      setTimeRemaining(null);
+      return;
+    }
+    
+    // Parse startedAt
+    let startedAtTimestamp: number;
+    try {
+      const startedAtDate = new Date(attempt.startedAt);
+      if (isNaN(startedAtDate.getTime())) {
+        console.error("Invalid startedAt date!", attempt.startedAt);
+        setTimeRemaining(null);
+        return;
+      }
+      startedAtTimestamp = startedAtDate.getTime();
+    } catch (error) {
+      console.error("Failed to parse startedAt", error);
+      setTimeRemaining(null);
+      return;
+    }
+    
     const computeRemaining = () => {
-      const startedAt = attempt.startedAt ? new Date(attempt.startedAt).getTime() : Date.now();
-      const elapsedFromStart = Math.floor((Date.now() - startedAt) / 1000);
-      const remaining = quiz.timeLimitMinutes * 60 - elapsedFromStart;
+      const now = Date.now();
+      const elapsedFromStart = Math.floor((now - startedAtTimestamp) / 1000);
+      const timeLimitSeconds = quiz.timeLimitMinutes * 60;
+      const remaining = timeLimitSeconds - elapsedFromStart;
       const clampedRemaining = Math.max(0, remaining);
       
-      setTimeRemaining((prev) => {
-        console.log("Timer tick, remaining:", clampedRemaining, "prev:", prev);
-        
-        if (clampedRemaining <= 0 && prev !== null && prev > 0) {
-          console.log("!!! TIMER REACHED 0 - Setting timerExpired to true !!!");
-          setTimerExpired(true);
-          return 0;
-        }
-        
-        return clampedRemaining;
-      });
+      setTimeRemaining(clampedRemaining);
+      
+      // Trigger timer expired when reaching zero
+      if (clampedRemaining === 0 && !hasAutoSubmitted.current) {
+        setTimerExpired(true);
+      }
     };
     
+    // Compute immediately
     computeRemaining();
+    
+    // Then update every second
     const interval = setInterval(computeRemaining, 1000);
-    return () => {
-      console.log("=== CLEARING TIMER INTERVAL ===");
-      clearInterval(interval);
-    };
-  }, [quiz, attempt, timeRemaining]);
+    return () => clearInterval(interval);
+  }, [quiz, attempt]);
 
-  // Auto-save attempt state (answers, currentQuestionIndex, elapsedSeconds)
+  // Auto-save attempt state on every change
   useEffect(() => {
-    console.log("=== AUTO-SAVE EFFECT ===");
-    console.log("attempt:", !!attempt);
-    console.log("quiz:", !!quiz);
-    if (!attempt || !quiz) {
-      console.log("=== AUTO-SAVE SKIPPED - Missing attempt or quiz ===");
-      return;
-    }
-    console.log("=== PERFORMING AUTO-SAVE ===");
+    if (!attempt || !quiz || !attempt._id) return;
+    
+    // Skip if attempt is already submitted
+    if (attempt.submittedAt || attempt.submitted) return;
+    
     const startedAt = attempt.startedAt ? new Date(attempt.startedAt).getTime() : Date.now();
     const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
     const payloadAnswers = formatAnswersForSave();
-    console.log("Auto-saving:", {
-      attemptId: attempt._id,
+
+    const updateData: any = {
+      answers: payloadAnswers,
       currentQuestionIndex,
       elapsedSeconds,
-      answersCount: payloadAnswers.length,
-    });
+    };
+    
+    // Include questionOrder if it exists
+    if (questionOrder.length > 0) {
+      updateData.questionOrder = questionOrder;
+    }
 
     attemptClient
-      .updateAttempt(attempt._id, {
-        answers: payloadAnswers,
-        currentQuestionIndex,
-        elapsedSeconds,
-      })
-      .then(() => {
-        console.log("=== AUTO-SAVE SUCCESS ===");
-      })
+      .updateAttempt(attempt._id, updateData)
       .catch((err) => {
-        console.error("=== AUTO-SAVE ERROR ===", err);
+        console.error("Auto-save error:", err);
       });
-  }, [answers, currentQuestionIndex, attempt, quiz, formatAnswersForSave]);
+  }, [answers, currentQuestionIndex, attempt, quiz, formatAnswersForSave, questionOrder]);
 
   // Auto-submit when timer expires
   useEffect(() => {
-    console.log("=== AUTO-SUBMIT EFFECT ===");
-    console.log("timerExpired:", timerExpired);
-    console.log("handleSubmit function:", typeof handleSubmit);
-
-    if (timerExpired) {
-      console.log("!!! TIME EXPIRED - TRIGGERING AUTO-SUBMIT !!!");
-      handleSubmit(true);
-    } else {
-      console.log("Timer not expired, skipping auto-submit");
+    if (timerExpired && attempt && !attempt.submittedAt && !attempt.submitted && !hasAutoSubmitted.current) {
+      console.log("Timer expired - triggering auto-submit");
+      // Small delay to ensure state is consistent
+      const timeoutId = setTimeout(() => {
+        handleSubmit(true);
+      }, 100);
+      return () => clearTimeout(timeoutId);
     }
-  }, [timerExpired, handleSubmit]);
-
-  console.log("=== ALL EFFECTS REGISTERED ===");
+  }, [timerExpired, handleSubmit, attempt]);
 
   // 7. EARLY RETURNS (after ALL hooks)
-  console.log("=== CHECKING EARLY RETURNS ===");
-  console.log("quiz exists?", !!quiz);
-  console.log("attempt exists?", !!attempt);
-
   if (!quiz || !attempt) {
-    console.log("RETURNING: Loading state (quiz:", !!quiz, "attempt:", !!attempt, ")");
     return <div>Loading...</div>;
   }
 
   // 8. RENDER LOGIC (after ALL hooks and early returns)
-  console.log("=== RENDERING QUIZ ===");
   const questions = quiz?.questions || [];
+  
   // Use questionOrder to map currentQuestionIndex to actual question
   const actualQuestionIndex = questionOrder.length > 0 && questionOrder[currentQuestionIndex] !== undefined
     ? questionOrder[currentQuestionIndex]
     : currentQuestionIndex;
+  
   const currentQuestion = questionOrder.length > 0 && questions[actualQuestionIndex]
     ? questions[actualQuestionIndex]
     : questions[currentQuestionIndex] || null;
-  console.log("Questions count:", questions.length);
-  console.log("Current question index (shuffled position):", currentQuestionIndex);
-  console.log("Mapped to question index (original):", actualQuestionIndex);
-  console.log("=== DISPLAYING QUESTION ===");
-  console.log("Current index:", currentQuestionIndex);
-  console.log("Mapped to question index:", actualQuestionIndex);
-  console.log("Question:", currentQuestion?.title);
 
   if (questions.length === 0) {
-    console.log("RETURNING: No questions");
     return (
       <div>
         <h3>{quiz.title}</h3>
@@ -504,48 +456,28 @@ export default function TakeQuiz() {
   const isResuming =
     (attempt?.currentQuestionIndex ?? 0) > 0 ||
     (attempt?.answers?.length ?? 0) > 0;
-  console.log("Is resuming:", isResuming);
 
   const handleAnswerChange = (questionId: string, answer: unknown) => {
-    console.log("=== ANSWER CHANGED ===");
-    console.log("Question ID (original):", questionId);
-    console.log("Answer:", answer);
     // Always use the original question ID for saving answers
-    setAnswers((prev: any) => ({ ...prev, [questionId]: answer }));
+    const newAnswers = { ...answers, [questionId]: answer };
+    setAnswers(newAnswers);
   };
 
   const handleNext = () => {
-    console.log("=== HANDLE NEXT ===");
-    console.log("Current index:", currentQuestionIndex);
-    console.log("Questions length:", questions.length);
     if (currentQuestionIndex < questions.length - 1) {
-      const newIndex = currentQuestionIndex + 1;
-      console.log("Moving to question:", newIndex);
-      setCurrentQuestionIndex(newIndex);
-    } else {
-      console.log("Already at last question");
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
 
   const handlePrevious = () => {
-    console.log("=== HANDLE PREVIOUS ===");
-    console.log("Current index:", currentQuestionIndex);
     if (currentQuestionIndex > 0) {
-      const newIndex = currentQuestionIndex - 1;
-      console.log("Moving to question:", newIndex);
-      setCurrentQuestionIndex(newIndex);
-    } else {
-      console.log("Already at first question");
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
   };
 
   const handleJumpToQuestion = (index: number) => {
-    console.log("=== HANDLE JUMP TO QUESTION ===");
-    console.log("Jumping to index:", index);
     setCurrentQuestionIndex(index);
   };
-
-  console.log("=== RENDERING QUIZ UI ===");
 
   return (
     <div>
@@ -558,24 +490,23 @@ export default function TakeQuiz() {
         )}
         <Button
           variant="danger"
-          onClick={() => {
-            console.log("=== SUBMIT BUTTON CLICKED ===");
-            handleSubmit(false);
-          }}
+          onClick={() => handleSubmit(false)}
+          disabled={isSubmitting}
         >
-          Submit Quiz
+          {isSubmitting ? "Submitting..." : "Submit Quiz"}
         </Button>
       </div>
 
       {quiz.timeLimit && quiz.timeLimitMinutes && (
         <div className="mb-3">
           <strong>Time Remaining: </strong>
-          {timeRemaining !== null
-            ? `${Math.max(0, Math.floor(timeRemaining / 60))}m ${Math.max(
-                0,
-                timeRemaining % 60
-              )}s`
-            : "Calculating..."}
+          {timeRemaining !== null && timeRemaining !== undefined ? (
+            <span className={timeRemaining <= 60 ? "text-danger fw-bold" : ""}>
+              {Math.max(0, Math.floor(timeRemaining / 60))}m {Math.max(0, Math.floor(timeRemaining % 60))}s
+            </span>
+          ) : (
+            <span>Calculating...</span>
+          )}
         </div>
       )}
 
@@ -604,7 +535,7 @@ export default function TakeQuiz() {
             <div>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {currentQuestion.options?.map((option: any, index: number) => {
-                const optionKey = `take-opt-${currentQuestion._id}-${index}-${String(option.text || "").substring(0, 10) || index}`;
+                const optionKey = `take-opt-${currentQuestion._id}-${index}`;
                 const originalQuestionId = currentQuestion._id;
                 return (
                   <div key={optionKey} className="mb-2">
@@ -613,13 +544,7 @@ export default function TakeQuiz() {
                       id={`take-option-${currentQuestion._id}-${index}`}
                       name={`take-mc-${currentQuestion._id}`}
                       checked={answers[originalQuestionId] === index}
-                      onChange={() => {
-                        console.log("=== MULTIPLE CHOICE OPTION CLICKED ===");
-                        console.log("Question (original ID):", originalQuestionId);
-                        console.log("Saving answer for original question ID:", originalQuestionId);
-                        console.log("Option index:", index);
-                        handleAnswerChange(originalQuestionId, index);
-                      }}
+                      onChange={() => handleAnswerChange(originalQuestionId, index)}
                       label={option.text}
                     />
                   </div>
@@ -637,12 +562,7 @@ export default function TakeQuiz() {
                   id={`take-tf-true-${currentQuestion._id}`}
                   name={`take-tf-${currentQuestion._id}`}
                   checked={answers[currentQuestion._id] === true}
-                  onChange={() => {
-                    console.log("=== TRUE/FALSE TRUE CLICKED ===");
-                    const originalQuestionId = currentQuestion._id;
-                    console.log("Saving answer for original question ID:", originalQuestionId);
-                    handleAnswerChange(originalQuestionId, true);
-                  }}
+                  onChange={() => handleAnswerChange(currentQuestion._id, true)}
                   label="True"
                 />
               </div>
@@ -652,12 +572,7 @@ export default function TakeQuiz() {
                   id={`take-tf-false-${currentQuestion._id}`}
                   name={`take-tf-${currentQuestion._id}`}
                   checked={answers[currentQuestion._id] === false}
-                  onChange={() => {
-                    console.log("=== TRUE/FALSE FALSE CLICKED ===");
-                    const originalQuestionId = currentQuestion._id;
-                    console.log("Saving answer for original question ID:", originalQuestionId);
-                    handleAnswerChange(originalQuestionId, false);
-                  }}
+                  onChange={() => handleAnswerChange(currentQuestion._id, false)}
                   label="False"
                 />
               </div>
@@ -669,30 +584,25 @@ export default function TakeQuiz() {
             <div>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {currentQuestion.blanks?.map((blank: any, blankIndex: number) => {
-                const blankKey = `take-blank-${currentQuestion._id}-${blankIndex}-${String(blank.text || "").substring(0, 10) || blankIndex}`;
+                const blankKey = `take-blank-${currentQuestion._id}-${blankIndex}`;
                 const originalQuestionId = currentQuestion._id;
                 return (
                   <div key={blankKey} className="mb-2">
-                  <Form.Label htmlFor={`take-blank-${currentQuestion._id}-${blankIndex}`}>
-                    {blank.text}
-                  </Form.Label>
-                  <Form.Control
-                    type="text"
-                    id={`take-blank-${currentQuestion._id}-${blankIndex}`}
-                    value={answers[originalQuestionId]?.[blankIndex] || ""}
-                    onChange={(e) => {
-                      console.log("=== FILL IN BLANK CHANGED ===");
-                      console.log("Question (original ID):", originalQuestionId);
-                      console.log("Saving answer for original question ID:", originalQuestionId);
-                      console.log("Blank index:", blankIndex);
-                      console.log("Value:", e.target.value);
-                      const currentAnswers = answers[originalQuestionId] || [];
-                      const newAnswers = [...currentAnswers];
-                      newAnswers[blankIndex] = e.target.value;
-                      handleAnswerChange(originalQuestionId, newAnswers);
-                    }}
-                    placeholder="Enter your answer"
-                  />
+                    <Form.Label htmlFor={`take-blank-${currentQuestion._id}-${blankIndex}`}>
+                      {blank.text}
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      id={`take-blank-${currentQuestion._id}-${blankIndex}`}
+                      value={answers[originalQuestionId]?.[blankIndex] || ""}
+                      onChange={(e) => {
+                        const currentAnswers = answers[originalQuestionId] || [];
+                        const newAnswers = [...currentAnswers];
+                        newAnswers[blankIndex] = e.target.value;
+                        handleAnswerChange(originalQuestionId, newAnswers);
+                      }}
+                      placeholder="Enter your answer"
+                    />
                   </div>
                 );
               })}
@@ -704,20 +614,14 @@ export default function TakeQuiz() {
       <div className="d-flex justify-content-between mb-3">
         <Button
           variant="secondary"
-          onClick={() => {
-            console.log("=== PREVIOUS BUTTON CLICKED ===");
-            handlePrevious();
-          }}
+          onClick={handlePrevious}
           disabled={currentQuestionIndex === 0}
         >
           Previous
         </Button>
         <Button
           variant="primary"
-          onClick={() => {
-            console.log("=== NEXT BUTTON CLICKED ===");
-            handleNext();
-          }}
+          onClick={handleNext}
           disabled={currentQuestionIndex === questions.length - 1}
         >
           Next
@@ -726,8 +630,7 @@ export default function TakeQuiz() {
 
       <div className="mt-4">
         <strong>Question Navigation:</strong>
-        <ListGroup horizontal className="mt-2">
-          {/* Map through questionOrder to show questions in shuffled order */}
+        <ListGroup horizontal className="mt-2 flex-wrap">
           {questionOrder.length > 0 ? (
             questionOrder.map((originalIndex: number, displayIndex: number) => {
               const question = questions[originalIndex];
@@ -736,12 +639,7 @@ export default function TakeQuiz() {
                   key={question?._id || originalIndex}
                   action
                   active={displayIndex === currentQuestionIndex}
-                  onClick={() => {
-                    console.log("=== QUESTION NAVIGATION CLICKED ===");
-                    console.log("Jumping to display index:", displayIndex);
-                    console.log("Original question index:", originalIndex);
-                    handleJumpToQuestion(displayIndex);
-                  }}
+                  onClick={() => handleJumpToQuestion(displayIndex)}
                   style={{ cursor: "pointer" }}
                 >
                   {displayIndex + 1}
@@ -756,11 +654,7 @@ export default function TakeQuiz() {
                 key={q._id}
                 action
                 active={index === currentQuestionIndex}
-                onClick={() => {
-                  console.log("=== QUESTION NAVIGATION CLICKED ===");
-                  console.log("Jumping to question index:", index);
-                  handleJumpToQuestion(index);
-                }}
+                onClick={() => handleJumpToQuestion(index)}
                 style={{ cursor: "pointer" }}
               >
                 {index + 1}

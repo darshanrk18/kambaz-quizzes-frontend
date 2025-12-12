@@ -56,7 +56,7 @@ export default function Dashboard() {
     try {
       if (!course._id) return; // Can't update without _id
       await courseClient.updateCourse(course);
-      setCourses(courses.map((c) => (c._id === course._id ? course : c)));
+      setCourses(courses.filter(c => c !== null && c !== undefined).map((c) => (c._id === course._id ? course : c)));
     } catch (error) {
       console.error("Error updating course:", error);
     }
@@ -66,7 +66,7 @@ export default function Dashboard() {
   const deleteCourse = async (courseId: string) => {
     try {
       await courseClient.deleteCourse(courseId);
-      setCourses(courses.filter((c) => c._id !== courseId));
+      setCourses(courses.filter((c) => c !== null && c !== undefined && c._id !== courseId));
     } catch (error) {
       console.error("Error deleting course:", error);
     }
@@ -163,7 +163,7 @@ export default function Dashboard() {
   };
 
   const isEnrolled = (courseId: string) => {
-    return courses.some((c) => c._id === courseId);
+    return courses.filter(c => c !== null && c !== undefined).some((c) => c._id === courseId);
   };
 
   // ← NEW: Determine which courses to display
@@ -224,7 +224,9 @@ export default function Dashboard() {
       <hr />
 
       <div className="row row-cols-1 row-cols-md-5 g-4">
-        {displayedCourses.map((course) => {
+        {displayedCourses
+          .filter((course) => course !== null && course !== undefined)
+          .map((course) => {
           const enrolled = isEnrolled(course._id);
           
           return (
