@@ -116,8 +116,8 @@ export default function Quizzes() {
           <p>No quizzes match your search: &quot;{searchQuery}&quot;</p>
         </div>
       ) : (
-        <div style={{ maxHeight: "70vh", overflowY: "auto" }}>
-          <ListGroup className="rounded-0">
+        <div style={{ maxHeight: "70vh", overflowY: "auto", position: "relative" }}>
+          <ListGroup className="rounded-0" style={{ position: "relative" }}>
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {filteredQuizzes.map((quiz: any) => {
             const availabilityStatus = getAvailabilityStatus(quiz);
@@ -169,7 +169,26 @@ export default function Quizzes() {
                     >
                       <FaEllipsisV />
                     </Dropdown.Toggle>
-                    <Dropdown.Menu>
+                    <Dropdown.Menu
+                      popperConfig={{
+                        strategy: "fixed",
+                        modifiers: [
+                          {
+                            name: "preventOverflow",
+                            options: {
+                              boundary: "viewport",
+                              padding: 8,
+                            },
+                          },
+                          {
+                            name: "flip",
+                            options: {
+                              fallbackPlacements: ["top", "bottom", "left", "right"],
+                            },
+                          },
+                        ],
+                      }}
+                    >
                       <Dropdown.Item
                         onClick={() => router.push(`/Courses/${cid}/Quizzes/${quiz._id}/Editor`)}
                       >
