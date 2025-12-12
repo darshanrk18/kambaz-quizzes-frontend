@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button } from "react-bootstrap";
+import { Button, Alert } from "react-bootstrap";
 import { useSelector } from "react-redux";
 import * as client from "../client";
 import * as attemptClient from "./Take/client";
@@ -12,6 +12,10 @@ export default function QuizDetails() {
   const router = useRouter();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [quiz, setQuiz] = useState<any>(null);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [showAccessCodeModal, setShowAccessCodeModal] = useState(false);
+  const [enteredAccessCode, setEnteredAccessCode] = useState("");
+  const [accessCodeError, setAccessCodeError] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { currentUser } = useSelector((state: any) => state.accountReducer);
   const isFaculty = currentUser?.role === "FACULTY";
@@ -52,10 +56,27 @@ export default function QuizDetails() {
 
   const handlePublishToggle = async () => {
     try {
-      const updated = await client.publishQuiz(quiz._id, !quiz.published);
+      console.log("=== PUBLISH TOGGLE DEBUG ===");
+      console.log("Current published state:", quiz.published);
+      console.log("Quiz ID:", quiz._id);
+      
+      setPublishError(null); // Clear previous errors
+      const newPublishedState = !quiz.published;
+      
+      console.log("Attempting to set published to:", newPublishedState);
+      
+      const updated = await client.publishQuiz(quiz._id, newPublishedState);
+      
+      console.log("Publish response:", updated);
+      console.log("=== PUBLISH TOGGLE SUCCESS ===");
       setQuiz(updated);
-    } catch (error) {
-      console.error("Error toggling publish:", error);
+    } catch (error: unknown) {
+      console.error("=== PUBLISH TOGGLE FAILED ===", error);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorMessage = (error as any)?.response?.data?.message || "Failed to publish quiz";
+      console.error("Error message:", errorMessage);
+      setPublishError(errorMessage);
+      alert(errorMessage); // Show immediate alert
     }
   };
 
@@ -66,6 +87,12 @@ export default function QuizDetails() {
   // Extract faculty view to reduce complexity - Canvas style
   const renderFacultyView = () => (
     <div>
+      {publishError && (
+        <Alert variant="danger" dismissible onClose={() => setPublishError(null)} className="mb-3">
+          <i className="bi bi-exclamation-triangle-fill me-2"></i>
+          {publishError}
+        </Alert>
+      )}
       <div className="d-flex justify-content-between align-items-start mb-3">
         <h3>{quiz.title}</h3>
         <div>
@@ -174,6 +201,38 @@ export default function QuizDetails() {
     return "Available";
   };
 
+  const handleStartQuiz = () => {
+    console.log("=== START QUIZ CLICKED ===");
+    console.log("Quiz has access code:", !!quiz.accessCode);
+    console.log("Access code value:", quiz.accessCode);
+    
+    if (quiz.accessCode && quiz.accessCode.trim() !== "") {
+      console.log("Access code required. Showing modal.");
+      setShowAccessCodeModal(true);
+    } else {
+      console.log("No access code required. Starting quiz directly.");
+      // Start quiz directly
+      router.push(`/Courses/${cid}/Quizzes/${qid}/Take`);
+    }
+  };
+
+  const handleAccessCodeSubmit = () => {
+    console.log("=== ACCESS CODE SUBMISSION ===");
+    console.log("Entered code:", enteredAccessCode);
+    console.log("Expected code:", quiz.accessCode);
+    
+    if (enteredAccessCode.trim() === quiz.accessCode?.trim()) {
+      console.log("Access code CORRECT. Starting quiz.");
+      setShowAccessCodeModal(false);
+      setEnteredAccessCode("");
+      setAccessCodeError("");
+      router.push(`/Courses/${cid}/Quizzes/${qid}/Take`);
+    } else {
+      console.log("Access code INCORRECT.");
+      setAccessCodeError("Incorrect access code. Please try again.");
+    }
+  };
+
   const renderStudentView = () => {
     const availabilityStatus = getAvailabilityStatus();
     const canTakeQuiz = quiz.published && availabilityStatus === "Available";
@@ -193,7 +252,7 @@ export default function QuizDetails() {
           {canTakeQuiz && (
             <Button
               variant="danger"
-              onClick={() => router.push(`/Courses/${cid}/Quizzes/${qid}/Take`)}
+              onClick={handleStartQuiz}
             >
               {getButtonText()}
             </Button>
@@ -250,6 +309,64 @@ export default function QuizDetails() {
     return renderFacultyView();
   }
 
-  return renderStudentView();
+  return (
+    <>
+      {renderStudentView()}
+      {showAccessCodeModal && (
+        <div className="modal show d-block" tabIndex={-1} style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Enter Access Code</h5>
+                <button type="button" className="btn-close" onClick={() => {
+                  setShowAccessCodeModal(false);
+                  setEnteredAccessCode("");
+                  setAccessCodeError("");
+                }}></button>
+              </div>
+              <div className="modal-body">
+                {accessCodeError && (
+                  <div className="alert alert-danger">{accessCodeError}</div>
+                )}
+                <p>This quiz requires an access code to begin.</p>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Enter access code"
+                  value={enteredAccessCode}
+                  onChange={(e) => setEnteredAccessCode(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAccessCodeSubmit();
+                    }
+                  }}
+                />
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowAccessCodeModal(false);
+                    setEnteredAccessCode("");
+                    setAccessCodeError("");
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary"
+                  onClick={handleAccessCodeSubmit}
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 

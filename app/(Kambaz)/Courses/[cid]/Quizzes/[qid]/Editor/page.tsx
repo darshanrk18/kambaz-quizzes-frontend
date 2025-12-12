@@ -61,14 +61,27 @@ export default function QuizEditor() {
     }
 
     try {
+      console.log("=== SAVE QUIZ DEBUG ===");
+      console.log("Quiz data being saved:", quiz);
+      console.log("Available date:", quiz.availableDate);
+      console.log("Due date:", quiz.dueDate);
+      console.log("Until date:", quiz.untilDate);
+      console.log("Is publishing:", false);
+      console.log("Quiz ID:", quiz._id);
+      
+      setErrors([]); // Clear previous errors
       await client.updateQuiz(quiz._id, quiz);
+      console.log("=== SAVE SUCCESS ===");
       router.push(`/Courses/${cid}/Quizzes/${quiz._id}`);
     } catch (error: unknown) {
-      console.error("Error saving quiz:", error);
+      console.error("=== SAVE FAILED ===", error);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const errorMessage = 
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (error as any)?.response?.data?.message ||
         "Failed to save quiz. Please try again.";
+      console.error("Error message:", errorMessage);
       setErrors([errorMessage]);
+      alert(errorMessage); // Show immediate alert
     }
   };
 
@@ -79,14 +92,29 @@ export default function QuizEditor() {
     }
 
     try {
-      await client.updateQuiz(quiz._id, { ...quiz, published: true });
+      console.log("=== SAVE QUIZ DEBUG ===");
+      const quizData = { ...quiz, published: true };
+      console.log("Quiz data being saved:", quizData);
+      console.log("Available date:", quizData.availableDate);
+      console.log("Due date:", quizData.dueDate);
+      console.log("Until date:", quizData.untilDate);
+      console.log("Is publishing:", true);
+      console.log("Quiz ID:", quiz._id);
+      console.log("Questions count:", quiz.questions?.length || 0);
+      
+      setErrors([]); // Clear previous errors
+      await client.updateQuiz(quiz._id, quizData);
+      console.log("=== SAVE AND PUBLISH SUCCESS ===");
       router.push(`/Courses/${cid}/Quizzes`);
     } catch (error: unknown) {
-      console.error("Error saving and publishing quiz:", error);
+      console.error("=== SAVE AND PUBLISH FAILED ===", error);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const errorMessage = 
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (error as any)?.response?.data?.message ||
         "Failed to save and publish quiz. Please try again.";
+      console.error("Error message:", errorMessage);
       setErrors([errorMessage]);
+      alert(errorMessage); // Show immediate alert
     }
   };
 

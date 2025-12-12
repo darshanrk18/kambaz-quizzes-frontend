@@ -25,8 +25,12 @@ export default function TakeQuiz() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [timerExpired, setTimerExpired] = useState(false);
+  const [questionOrder, setQuestionOrder] = useState<number[]>([]);
+  const [questionsInitialized, setQuestionsInitialized] = useState(false);
   console.log("=== ALL STATES INITIALIZED ===");
   console.log("quiz:", !!quiz, "attempt:", !!attempt, "currentQuestionIndex:", currentQuestionIndex);
+  console.log("questionOrder:", questionOrder);
+  console.log("questionsInitialized:", questionsInitialized);
 
   // 3. ALL useSelector (always run)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -85,7 +89,8 @@ export default function TakeQuiz() {
       const points = question.points || 0;
       totalPoints += points;
       const answer = answers[question._id];
-      if (!answer) return;
+      // IMPORTANT: Check for undefined/null, not falsy (0 and false are valid answers!)
+      if (answer === undefined || answer === null) return;
 
       if (question.questionType === "Multiple Choice") {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -129,7 +134,8 @@ export default function TakeQuiz() {
     const questions = quiz?.questions || [];
     const formatted = questions.map((question: any) => {
       const answer = answers[question._id];
-      if (answer === undefined) {
+      // IMPORTANT: Check for undefined/null, not falsy (0 is a valid answer!)
+      if (answer === undefined || answer === null) {
         return {
           questionId: question._id,
           selectedOptions: [],
@@ -177,6 +183,11 @@ export default function TakeQuiz() {
     }
     
     try {
+      console.log("=== SUBMITTING QUIZ ===");
+      console.log("Attempt ID:", attempt._id);
+      console.log("All answers:", answers);
+      console.log("Current time:", new Date().toISOString());
+      
       console.log("=== CALCULATING SCORE FOR SUBMIT ===");
       const { score, totalPoints } = calculateScore();
       const questions = quiz?.questions || [];
@@ -184,7 +195,8 @@ export default function TakeQuiz() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const formattedAnswers = questions.map((question: any) => {
         const answer = answers[question._id];
-        if (!answer) {
+        // IMPORTANT: Check for undefined/null, not falsy (0 is a valid answer!)
+        if (answer === undefined || answer === null) {
           return {
             questionId: question._id,
             selectedOptions: [],
@@ -221,12 +233,29 @@ export default function TakeQuiz() {
       console.log("=== SUBMITTING ATTEMPT ===");
       console.log("Attempt ID:", attempt._id);
       console.log("Score:", score, "Total Points:", totalPoints);
-      await attemptClient.submitAttempt(attempt._id, formattedAnswers, score, totalPoints);
-      console.log("=== SUBMIT SUCCESS - NAVIGATING TO RESULTS ===");
+      const response = await attemptClient.submitAttempt(attempt._id, formattedAnswers, score, totalPoints);
+      console.log("=== SUBMISSION SUCCESSFUL ===");
+      console.log("Response:", response);
+      console.log("Score:", response?.score || score);
+      console.log("Total points:", response?.totalPoints || totalPoints);
+      
+      // IMPORTANT: Clear any cached attempt data
+      console.log("=== CLEARING CACHED ATTEMPT DATA ===");
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(`quiz_attempt_${qid}`);
+      }
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(`quiz_attempt_${qid}`);
+      }
+      
+      // Navigate to results page
+      console.log("=== NAVIGATING TO RESULTS PAGE ===");
       router.push(`/Courses/${cid}/Quizzes/${qid}/Results`);
     } catch (error) {
-      console.error("=== SUBMIT ERROR ===", error);
-      alert("Error submitting quiz. Please try again.");
+      console.error("=== SUBMISSION FAILED ===", error);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorMessage = (error as any)?.response?.data?.message || "Failed to submit quiz. Please try again.";
+      alert(errorMessage);
     }
   }, [quiz, answers, attempt, calculateScore, router, cid, qid]);
 
@@ -237,6 +266,42 @@ export default function TakeQuiz() {
     console.log("=== FETCH QUIZ EFFECT ===");
     fetchQuiz();
   }, [fetchQuiz]);
+
+  // Check if attempt is already submitted before starting new one
+  useEffect(() => {
+    const loadAttempt = async () => {
+      if (!currentUser?._id || !qid) {
+        console.log("=== LOAD ATTEMPT SKIPPED - Missing user or quiz ID ===");
+        return;
+      }
+      
+      try {
+        console.log("=== LOADING ATTEMPT ===");
+        console.log("User ID:", currentUser._id);
+        console.log("Quiz ID:", qid);
+        
+        const existingAttempt = await attemptClient.findLatestAttempt(currentUser._id, qid as string);
+        console.log("Existing attempt:", existingAttempt);
+        
+        if (existingAttempt && existingAttempt.submittedAt) {
+          console.log("⚠️ Attempt already submitted! Redirecting to results.");
+          console.log("Submitted at:", existingAttempt.submittedAt);
+          router.push(`/Courses/${cid}/Quizzes/${qid}/Results`);
+          return;
+        }
+        
+        console.log("=== NO SUBMITTED ATTEMPT FOUND - CONTINUING NORMAL FLOW ===");
+      } catch (error) {
+        console.error("=== ERROR LOADING ATTEMPT ===", error);
+        // If there's an error (e.g., no attempt exists), continue with normal flow
+        console.log("Continuing with normal attempt creation flow...");
+      }
+    };
+    
+    if (currentUser && qid && !attempt) {
+      loadAttempt();
+    }
+  }, [currentUser, qid, attempt, router, cid]);
 
   useEffect(() => {
     console.log("=== START ATTEMPT EFFECT ===");
@@ -251,6 +316,34 @@ export default function TakeQuiz() {
       console.log("=== CONDITIONS NOT MET - SKIPPING ATTEMPT START ===");
     }
   }, [currentUser, quiz, attempt, startAttempt]);
+
+  // Initialize question order (shuffle if needed) - ONCE when quiz loads
+  useEffect(() => {
+    if (quiz && quiz.questions && !questionsInitialized) {
+      console.log("=== INITIALIZING QUESTION ORDER ===");
+      console.log("Quiz shuffleAnswers setting:", quiz.shuffleAnswers);
+      console.log("Number of questions:", quiz.questions.length);
+      
+      let order: number[] = [];
+      if (quiz.shuffleAnswers === true) {
+        // Shuffle the questions
+        order = quiz.questions.map((_, index) => index);
+        // Fisher-Yates shuffle algorithm
+        for (let i = order.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [order[i], order[j]] = [order[j], order[i]];
+        }
+        console.log("Questions SHUFFLED. Order:", order);
+      } else {
+        // Keep original order
+        order = quiz.questions.map((_, index) => index);
+        console.log("Questions NOT shuffled. Order:", order);
+      }
+      
+      setQuestionOrder(order);
+      setQuestionsInitialized(true);
+    }
+  }, [quiz, questionsInitialized]);
 
   // Restore saved state from attempt (question index + answers)
   useEffect(() => {
@@ -383,10 +476,20 @@ export default function TakeQuiz() {
   // 8. RENDER LOGIC (after ALL hooks and early returns)
   console.log("=== RENDERING QUIZ ===");
   const questions = quiz?.questions || [];
-  const currentQuestion = questions[currentQuestionIndex];
+  // Use questionOrder to map currentQuestionIndex to actual question
+  const actualQuestionIndex = questionOrder.length > 0 && questionOrder[currentQuestionIndex] !== undefined
+    ? questionOrder[currentQuestionIndex]
+    : currentQuestionIndex;
+  const currentQuestion = questionOrder.length > 0 && questions[actualQuestionIndex]
+    ? questions[actualQuestionIndex]
+    : questions[currentQuestionIndex] || null;
   console.log("Questions count:", questions.length);
-  console.log("Current question index:", currentQuestionIndex);
-  console.log("Current question:", currentQuestion?.title);
+  console.log("Current question index (shuffled position):", currentQuestionIndex);
+  console.log("Mapped to question index (original):", actualQuestionIndex);
+  console.log("=== DISPLAYING QUESTION ===");
+  console.log("Current index:", currentQuestionIndex);
+  console.log("Mapped to question index:", actualQuestionIndex);
+  console.log("Question:", currentQuestion?.title);
 
   if (questions.length === 0) {
     console.log("RETURNING: No questions");
@@ -405,8 +508,9 @@ export default function TakeQuiz() {
 
   const handleAnswerChange = (questionId: string, answer: unknown) => {
     console.log("=== ANSWER CHANGED ===");
-    console.log("Question ID:", questionId);
+    console.log("Question ID (original):", questionId);
     console.log("Answer:", answer);
+    // Always use the original question ID for saving answers
     setAnswers((prev: any) => ({ ...prev, [questionId]: answer }));
   };
 
@@ -501,18 +605,20 @@ export default function TakeQuiz() {
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {currentQuestion.options?.map((option: any, index: number) => {
                 const optionKey = `take-opt-${currentQuestion._id}-${index}-${String(option.text || "").substring(0, 10) || index}`;
+                const originalQuestionId = currentQuestion._id;
                 return (
                   <div key={optionKey} className="mb-2">
                     <Form.Check
                       type="radio"
                       id={`take-option-${currentQuestion._id}-${index}`}
                       name={`take-mc-${currentQuestion._id}`}
-                      checked={answers[currentQuestion._id] === index}
+                      checked={answers[originalQuestionId] === index}
                       onChange={() => {
                         console.log("=== MULTIPLE CHOICE OPTION CLICKED ===");
-                        console.log("Question:", currentQuestion._id);
+                        console.log("Question (original ID):", originalQuestionId);
+                        console.log("Saving answer for original question ID:", originalQuestionId);
                         console.log("Option index:", index);
-                        handleAnswerChange(currentQuestion._id, index);
+                        handleAnswerChange(originalQuestionId, index);
                       }}
                       label={option.text}
                     />
@@ -533,7 +639,9 @@ export default function TakeQuiz() {
                   checked={answers[currentQuestion._id] === true}
                   onChange={() => {
                     console.log("=== TRUE/FALSE TRUE CLICKED ===");
-                    handleAnswerChange(currentQuestion._id, true);
+                    const originalQuestionId = currentQuestion._id;
+                    console.log("Saving answer for original question ID:", originalQuestionId);
+                    handleAnswerChange(originalQuestionId, true);
                   }}
                   label="True"
                 />
@@ -546,7 +654,9 @@ export default function TakeQuiz() {
                   checked={answers[currentQuestion._id] === false}
                   onChange={() => {
                     console.log("=== TRUE/FALSE FALSE CLICKED ===");
-                    handleAnswerChange(currentQuestion._id, false);
+                    const originalQuestionId = currentQuestion._id;
+                    console.log("Saving answer for original question ID:", originalQuestionId);
+                    handleAnswerChange(originalQuestionId, false);
                   }}
                   label="False"
                 />
@@ -560,6 +670,7 @@ export default function TakeQuiz() {
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {currentQuestion.blanks?.map((blank: any, blankIndex: number) => {
                 const blankKey = `take-blank-${currentQuestion._id}-${blankIndex}-${String(blank.text || "").substring(0, 10) || blankIndex}`;
+                const originalQuestionId = currentQuestion._id;
                 return (
                   <div key={blankKey} className="mb-2">
                   <Form.Label htmlFor={`take-blank-${currentQuestion._id}-${blankIndex}`}>
@@ -568,16 +679,17 @@ export default function TakeQuiz() {
                   <Form.Control
                     type="text"
                     id={`take-blank-${currentQuestion._id}-${blankIndex}`}
-                    value={answers[currentQuestion._id]?.[blankIndex] || ""}
+                    value={answers[originalQuestionId]?.[blankIndex] || ""}
                     onChange={(e) => {
                       console.log("=== FILL IN BLANK CHANGED ===");
-                      console.log("Question:", currentQuestion._id);
+                      console.log("Question (original ID):", originalQuestionId);
+                      console.log("Saving answer for original question ID:", originalQuestionId);
                       console.log("Blank index:", blankIndex);
                       console.log("Value:", e.target.value);
-                      const currentAnswers = answers[currentQuestion._id] || [];
+                      const currentAnswers = answers[originalQuestionId] || [];
                       const newAnswers = [...currentAnswers];
                       newAnswers[blankIndex] = e.target.value;
-                      handleAnswerChange(currentQuestion._id, newAnswers);
+                      handleAnswerChange(originalQuestionId, newAnswers);
                     }}
                     placeholder="Enter your answer"
                   />
@@ -615,22 +727,46 @@ export default function TakeQuiz() {
       <div className="mt-4">
         <strong>Question Navigation:</strong>
         <ListGroup horizontal className="mt-2">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {questions.map((q: any, index: number) => (
-            <ListGroupItem
-              key={q._id}
-              action
-              active={index === currentQuestionIndex}
-              onClick={() => {
-                console.log("=== QUESTION NAVIGATION CLICKED ===");
-                console.log("Jumping to question index:", index);
-                handleJumpToQuestion(index);
-              }}
-              style={{ cursor: "pointer" }}
-            >
-              {index + 1}
-            </ListGroupItem>
-          ))}
+          {/* Map through questionOrder to show questions in shuffled order */}
+          {questionOrder.length > 0 ? (
+            questionOrder.map((originalIndex: number, displayIndex: number) => {
+              const question = questions[originalIndex];
+              return (
+                <ListGroupItem
+                  key={question?._id || originalIndex}
+                  action
+                  active={displayIndex === currentQuestionIndex}
+                  onClick={() => {
+                    console.log("=== QUESTION NAVIGATION CLICKED ===");
+                    console.log("Jumping to display index:", displayIndex);
+                    console.log("Original question index:", originalIndex);
+                    handleJumpToQuestion(displayIndex);
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
+                  {displayIndex + 1}
+                </ListGroupItem>
+              );
+            })
+          ) : (
+            // Fallback if questionOrder not initialized yet
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            questions.map((q: any, index: number) => (
+              <ListGroupItem
+                key={q._id}
+                action
+                active={index === currentQuestionIndex}
+                onClick={() => {
+                  console.log("=== QUESTION NAVIGATION CLICKED ===");
+                  console.log("Jumping to question index:", index);
+                  handleJumpToQuestion(index);
+                }}
+                style={{ cursor: "pointer" }}
+              >
+                {index + 1}
+              </ListGroupItem>
+            ))
+          )}
         </ListGroup>
       </div>
     </div>

@@ -87,12 +87,27 @@ export default function Dashboard() {
       
       try {
         console.log("Fetching courses for user:", currentUser._id);
-        const enrolledCourses = (await userClient.findMyCourses()) || [];
-        console.log("Fetched Courses:", enrolledCourses);
-        setCourses(enrolledCourses);
+        const rawEnrolledCourses = (await userClient.findMyCourses()) || [];
+        console.log("Raw fetched enrolled courses:", rawEnrolledCourses);
+        
+        // Filter out null/undefined courses
+        const validEnrolledCourses = rawEnrolledCourses.filter(
+          (course) => course !== null && course !== undefined
+        );
+        
+        console.log("Valid enrolled courses after filtering:", validEnrolledCourses);
+        setCourses(validEnrolledCourses); // Use filtered array
 
-        const allCoursesData = (await courseClient.fetchAllCourses()) || [];
-        setAllCourses(allCoursesData);
+        const rawAllCourses = (await courseClient.fetchAllCourses()) || [];
+        console.log("Raw fetched all courses:", rawAllCourses);
+        
+        // Filter out null/undefined courses
+        const validAllCourses = rawAllCourses.filter(
+          (course) => course !== null && course !== undefined
+        );
+        
+        console.log("Valid all courses after filtering:", validAllCourses);
+        setAllCourses(validAllCourses); // Use filtered array
       } catch (error) {
         console.error("Error fetching courses:", error);
       }
@@ -106,10 +121,19 @@ export default function Dashboard() {
     try {
       await enrollmentClient.enrollInCourse("current", courseId);
       // Refetch courses after enrollment
-      const enrolledCourses = (await userClient.findMyCourses()) || [];
-      setCourses(enrolledCourses);
-      const allCoursesData = (await courseClient.fetchAllCourses()) || [];
-      setAllCourses(allCoursesData);
+      const rawEnrolledCourses = (await userClient.findMyCourses()) || [];
+      // Filter out null/undefined courses
+      const validEnrolledCourses = rawEnrolledCourses.filter(
+        (course) => course !== null && course !== undefined
+      );
+      setCourses(validEnrolledCourses);
+      
+      const rawAllCourses = (await courseClient.fetchAllCourses()) || [];
+      // Filter out null/undefined courses
+      const validAllCourses = rawAllCourses.filter(
+        (course) => course !== null && course !== undefined
+      );
+      setAllCourses(validAllCourses);
     } catch (error) {
       console.error(error);
     }
@@ -120,10 +144,19 @@ export default function Dashboard() {
     try {
       await enrollmentClient.unenrollFromCourse("current", courseId);
       // Refetch courses after unenrollment
-      const enrolledCourses = (await userClient.findMyCourses()) || [];
-      setCourses(enrolledCourses);
-      const allCoursesData = (await courseClient.fetchAllCourses()) || [];
-      setAllCourses(allCoursesData);
+      const rawEnrolledCourses = (await userClient.findMyCourses()) || [];
+      // Filter out null/undefined courses
+      const validEnrolledCourses = rawEnrolledCourses.filter(
+        (course) => course !== null && course !== undefined
+      );
+      setCourses(validEnrolledCourses);
+      
+      const rawAllCourses = (await courseClient.fetchAllCourses()) || [];
+      // Filter out null/undefined courses
+      const validAllCourses = rawAllCourses.filter(
+        (course) => course !== null && course !== undefined
+      );
+      setAllCourses(validAllCourses);
     } catch (error) {
       console.error(error);
     }
